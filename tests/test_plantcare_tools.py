@@ -52,6 +52,35 @@ def test_schedule_unknown_species_default_and_no_history():
     assert r["next_water_date"] is None
 
 
+import plantcare.tools.weather as weather_mod
+from plantcare.tools.weather import get_weather
+
+
+class _FakeResp:
+    def __init__(self, payload):
+        self._p = payload
+    def raise_for_status(self):
+        pass
+    def json(self):
+        return self._p
+
+
+def test_get_weather_parses_and_sums_precip():
+    payload = {
+        "current": {"temperature_2m": 18.5, "relative_humidity_2m": 72},
+        "daily": {"precipitation_sum": [2, 0, 5, 1, 0, 3, 0,  4, 0, 1]},  # 7 past + 3 forecast
+    }
+    orig = weather_mod.httpx.get
+    weather_mod.httpx.get = lambda *a, **k: _FakeResp(payload)
+    try:
+        r = get_weather(47.6, -122.3)
+    finally:
+        weather_mod.httpx.get = orig
+    assert r["temp"] == 18.5 and r["humidity"] == 72, r
+    assert r["precip_7d"] == 11.0, r          # sum of first 7
+    assert r["forecast"] == [4, 0, 1], r       # remaining days
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     for fn in tests:
