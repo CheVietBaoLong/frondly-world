@@ -1,10 +1,22 @@
-# Python-generated files
+# Secrets / env
+.env
+*.env
+
+# Python
 __pycache__/
 *.py[oc]
 build/
 dist/
 wheels/
 *.egg-info
-
-# Virtual environments
 .venv
+
+# macOS
+.DS_Store
+
+# Xcode (iOS app, added in Step 1)
+*.xcuserstate
+xcuserdata/
+DerivedData/
+.build/
+*.pen
