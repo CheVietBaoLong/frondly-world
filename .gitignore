@@ -20,3 +20,5 @@ xcuserdata/
 DerivedData/
 .build/
 *.pen
+# Superpowers plans/specs — keep local
+docs/superpowers/
