@@ -1,0 +1,29 @@
+import type { ColorToken } from "@/constants/tokens";
+
+export const THRIVING_THRESHOLD = 85;
+
+// Ports scoreFromSeverity in Models.swift — coarse 3-bucket fallback.
+// ponytail: real smoothness needs the agent to emit health_score.
+export function scoreFromSeverity(severity: string | null | undefined): number {
+  switch (severity) {
+    case "high":
+      return 45;
+    case "medium":
+      return 70;
+    default:
+      return 90; // "low" or unspecified
+  }
+}
+
+// Ports Health.chip(for:) in Theme.swift — score-driven status chip.
+// ponytail: defaults from score; a real diagnosis can override the label later.
+export function chipForScore(score: number | null): {
+  label: string;
+  bg: ColorToken;
+  fg: ColorToken;
+} {
+  if (score == null) return { label: "New", bg: "stoneBg", fg: "secondary" };
+  if (score >= 85) return { label: "Healthy", bg: "mintBg", fg: "leafText" };
+  if (score >= 60) return { label: "Water soon", bg: "blushBg", fg: "rust" };
+  return { label: "Treat now", bg: "blushBg", fg: "rust" };
+}
