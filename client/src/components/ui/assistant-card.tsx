@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Text, View } from "react-native";
-import { tokens } from "@/constants/tokens";
 
 // Dark forest card carrying the assistant's voice (weather / next-care). Ports AssistantCard.
 // `icon` is an optional glyph slot rendered inside the citron circle (library-agnostic).
@@ -18,9 +17,7 @@ export function AssistantCard({
       <View className="h-9 w-9 items-center justify-center rounded-full bg-citron">{icon}</View>
       <View className="ml-3 flex-1">
         <Text className="font-display text-base text-white">{title}</Text>
-        <Text className="font-body text-xs" style={{ color: tokens.onDarkSecondary }}>
-          {detail}
-        </Text>
+        <Text className="font-body text-xs text-onDarkSecondary">{detail}</Text>
       </View>
     </View>
   );
