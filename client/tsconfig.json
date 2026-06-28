@@ -2,6 +2,10 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    // WatermelonDB model fields are decorator-defined accessors, not real
+    // instance fields — strict init checking doesn't apply, and the `!` that
+    // would silence it is rejected by babel's TS-decorator transform.
+    "strictPropertyInitialization": false,
     "experimentalDecorators": true,
     "paths": {
       "@/*": ["./src/*"],
