@@ -1,6 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
-import { ScrollView, Text, View } from "react-native";
+import { Link } from "expo-router";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AssistantCard } from "@/components/ui/assistant-card";
@@ -73,27 +74,29 @@ function Section({ label, items }: { label: string; items: PlantVM[] }) {
 
 function PlantCard({ plant }: { plant: PlantVM }) {
   return (
-    <View className="w-[48%] rounded-[18px] border border-border bg-surface p-2.5">
-      <View className="h-[116px] overflow-hidden rounded-[14px] bg-sage">
-        {/* dev-note: heroPhoto assumed to be a displayable URI; null until the capture flow ships. */}
-        {plant.heroPhoto ? (
-          <Image source={{ uri: plant.heroPhoto }} style={{ flex: 1 }} contentFit="cover" />
-        ) : null}
-        {plant.score != null ? (
-          <View className="absolute left-2 top-2">
-            <ScoreBadge score={plant.score} compact />
-          </View>
-        ) : null}
-      </View>
-      <Text className="mt-2 font-display text-[17px] text-forest" numberOfLines={1}>
-        {plant.name}
-      </Text>
-      <Text className="font-body text-xs text-secondary" numberOfLines={1}>
-        {plant.statusLine}
-      </Text>
-      <View className="mt-2">
-        <Chip text={plant.chip.label} bg={plant.chip.bg} fg={plant.chip.fg} />
-      </View>
-    </View>
+    <Link href={{ pathname: "/plant/[id]", params: { id: plant.id } }} asChild>
+      <Pressable className="w-[48%] rounded-[18px] border border-border bg-surface p-2.5">
+        <View className="h-[116px] overflow-hidden rounded-[14px] bg-sage">
+          {/* dev-note: heroPhoto assumed to be a displayable URI; null until the capture flow ships. */}
+          {plant.heroPhoto ? (
+            <Image source={{ uri: plant.heroPhoto }} style={{ flex: 1 }} contentFit="cover" />
+          ) : null}
+          {plant.score != null ? (
+            <View className="absolute left-2 top-2">
+              <ScoreBadge score={plant.score} compact />
+            </View>
+          ) : null}
+        </View>
+        <Text className="mt-2 font-display text-[17px] text-forest" numberOfLines={1}>
+          {plant.name}
+        </Text>
+        <Text className="font-body text-xs text-secondary" numberOfLines={1}>
+          {plant.statusLine}
+        </Text>
+        <View className="mt-2">
+          <Chip text={plant.chip.label} bg={plant.chip.bg} fg={plant.chip.fg} />
+        </View>
+      </Pressable>
+    </Link>
   );
 }
