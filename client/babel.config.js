@@ -3,7 +3,7 @@ module.exports = function (api) {
   return {
     presets: [["babel-preset-expo", { jsxImportSource: "nativewind" }], "nativewind/babel"],
     // WatermelonDB models use legacy decorators (@field, @children, ...).
-    // plugin-proposal-decorators v8 renamed `legacy: true` → `version: "legacy"`.
-    plugins: [["@babel/plugin-proposal-decorators", { version: "legacy" }]],
+    // Pinned to the v7 decorators plugin to match Expo's Babel 7 toolchain.
+    plugins: [["@babel/plugin-proposal-decorators", { legacy: true }]],
   };
 };
