@@ -1,6 +1,99 @@
-import { ComingSoon } from "@/components/ui/coming-soon";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { Image } from "expo-image";
+import { ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// dev-note: placeholder until PR5 replaces this with the real Garden Home.
+import { AssistantCard } from "@/components/ui/assistant-card";
+import { Chip } from "@/components/ui/chip";
+import { ScoreBadge } from "@/components/ui/score-badge";
+import { SectionLabel } from "@/components/ui/section-label";
+import { tokens } from "@/constants/tokens";
+import { useGarden, type PlantVM } from "@/hooks/use-garden";
+
+// Garden Home — ports GardenHomeView. Reactive list of the user's plants split
+// into Needs Attention / Thriving, with a conversational care card up top.
 export default function Garden() {
-  return <ComingSoon title="Garden" subtitle="Your plants will grow here" />;
+  const insets = useSafeAreaInsets();
+  const { plants } = useGarden();
+  const needCare = plants.filter((p) => p.needsAttention);
+  const thriving = plants.filter((p) => !p.needsAttention);
+
+  return (
+    <ScrollView
+      className="flex-1 bg-paper"
+      contentContainerStyle={{
+        paddingTop: insets.top + 8,
+        paddingHorizontal: 16,
+        paddingBottom: 96, // clear the floating tab bar
+        gap: 18,
+      }}
+    >
+      <View className="flex-row items-start">
+        <View className="flex-1">
+          <Text className="font-display text-[28px] text-forest">My Garden</Text>
+          <Text className="font-body text-xs text-secondary">
+            {plants.length} plants · {needCare.length} need care today
+          </Text>
+        </View>
+        <View className="h-10 w-10 items-center justify-center rounded-full bg-forest">
+          <Text className="font-display text-base text-citron">V</Text>
+        </View>
+      </View>
+
+      {/* dev-note: static copy — live weather lands with api.ts (deferred). */}
+      <AssistantCard
+        icon={<Ionicons name="sunny" size={18} color={tokens.forest} />}
+        title="Boston · sunny"
+        detail={
+          needCare.length === 0
+            ? "Calm week ahead — everyone's well watered."
+            : `${needCare.length} ${needCare.length === 1 ? "plant needs" : "plants need"} a little care today.`
+        }
+      />
+
+      <Section label="NEEDS ATTENTION" items={needCare} />
+      <Section label="THRIVING" items={thriving} />
+    </ScrollView>
+  );
+}
+
+function Section({ label, items }: { label: string; items: PlantVM[] }) {
+  if (items.length === 0) return null;
+  return (
+    <View className="gap-3">
+      <SectionLabel text={label} />
+      <View className="flex-row flex-wrap justify-between gap-y-3.5">
+        {items.map((p) => (
+          <PlantCard key={p.id} plant={p} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function PlantCard({ plant }: { plant: PlantVM }) {
+  return (
+    <View className="w-[48%] rounded-[18px] border border-border bg-surface p-2.5">
+      <View className="h-[116px] overflow-hidden rounded-[14px] bg-sage">
+        {/* dev-note: heroPhoto assumed to be a displayable URI; null until the capture flow ships. */}
+        {plant.heroPhoto ? (
+          <Image source={{ uri: plant.heroPhoto }} style={{ flex: 1 }} contentFit="cover" />
+        ) : null}
+        {plant.score != null ? (
+          <View className="absolute left-2 top-2">
+            <ScoreBadge score={plant.score} compact />
+          </View>
+        ) : null}
+      </View>
+      <Text className="mt-2 font-display text-[17px] text-forest" numberOfLines={1}>
+        {plant.name}
+      </Text>
+      <Text className="font-body text-xs text-secondary" numberOfLines={1}>
+        {plant.statusLine}
+      </Text>
+      <View className="mt-2">
+        <Chip text={plant.chip.label} bg={plant.chip.bg} fg={plant.chip.fg} />
+      </View>
+    </View>
+  );
 }
