@@ -1,22 +1,42 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { router, useLocalSearchParams } from "expo-router";
-import { ScrollView, Text, View, Pressable } from "react-native";
+import { router } from "expo-router";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Chip } from "@/components/ui/chip";
 import { SectionLabel } from "@/components/ui/section-label";
 import { tokens } from "@/constants/tokens";
-import { getSpecies } from "@/forage/data";
+import { getLastResult } from "@/forage/api";
 
-// Forage Species Detail — ports ForageDetailView. Full species info: quick
-// facts, a side-by-side "tell it apart" comparison with the toxic lookalike,
-// and a how-to-tell checklist.
+// Forage Species Detail — ports ForageDetailView. Renders the full curated info
+// from the last identification (facts, lookalikes, safety caveat, sources).
 export default function ForageSpecies() {
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const species = getSpecies(id);
+  const r = getLastResult();
 
-  if (!species) return <View className="flex-1 bg-paper" style={{ paddingTop: insets.top }} />;
+  if (!r || !r.name) {
+    return (
+      <View
+        className="flex-1 items-center justify-center gap-3 bg-paper px-8"
+        style={{ paddingTop: insets.top }}
+      >
+        <Text className="text-center font-body text-[13px] text-secondary">
+          No species selected. Identify a plant first.
+        </Text>
+        <Pressable onPress={() => router.back()} className="rounded-full bg-forest px-5 py-2.5">
+          <Text className="font-body text-[13px] font-semibold text-white">Back</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  const facts: [string, string | undefined][] = [
+    ["Edible part", r.facts?.edible_part],
+    ["Preparation", r.facts?.preparation],
+    ["Season", r.facts?.season],
+    ["Habitat", r.facts?.habitat],
+    ["Range", r.facts?.range],
+  ];
 
   return (
     <ScrollView
@@ -37,103 +57,82 @@ export default function ForageSpecies() {
         </Pressable>
         <View className="flex-1">
           <Text className="font-display text-[22px] text-forest" numberOfLines={1}>
-            {species.name}
+            {r.name}
           </Text>
-          <Text className="font-body text-xs italic text-secondary" numberOfLines={1}>
-            {species.latin}
-          </Text>
+          {r.scientific_name ? (
+            <Text className="font-body text-xs italic text-secondary" numberOfLines={1}>
+              {r.scientific_name}
+            </Text>
+          ) : null}
         </View>
         <Chip
-          text={species.edible ? "Edible" : "Caution"}
-          bg={species.edible ? "mintBg" : "blushBg"}
-          fg={species.edible ? "leafText" : "rust"}
+          text={r.state === "verified_edible" ? "Edible" : "Caution"}
+          bg={r.state === "verified_edible" ? "mintBg" : "blushBg"}
+          fg={r.state === "verified_edible" ? "leafText" : "rust"}
         />
       </View>
 
       {/* quick facts */}
       <View className="gap-2.5">
         <SectionLabel text="QUICK FACTS" />
-        <View className="flex-row flex-wrap justify-between gap-y-2.5">
-          <Fact label="Edible part" value={species.ediblePart} />
-          <Fact label="Season" value={species.season} />
-          <Fact label="Habitat" value={species.habitat} />
-          <Fact label="Range" value={species.range} />
-        </View>
+        {facts
+          .filter(([, v]) => !!v)
+          .map(([label, value]) => (
+            <View key={label} className="rounded-[14px] border border-border bg-surface p-3">
+              <Text className="font-body text-[10px] font-semibold uppercase tracking-wider text-secondary">
+                {label}
+              </Text>
+              <Text className="mt-1 font-body text-[13px] text-forest">{value}</Text>
+            </View>
+          ))}
       </View>
 
-      {/* tell it apart */}
-      {species.lookalike ? (
+      {/* toxic lookalikes */}
+      {r.toxic_lookalikes.length ? (
         <View className="gap-2.5">
-          <SectionLabel text="TELL IT APART" />
-          <View className="flex-row justify-between gap-3">
-            <CompareCard
-              tone="edible"
-              name={species.name}
-              latin={species.latin}
-              tag="Edible"
-              note={species.howToTell[0]}
-            />
-            <CompareCard
-              tone="danger"
-              name={species.lookalike.name}
-              latin={species.lookalike.latin}
-              tag={species.lookalike.danger}
-              note={species.lookalike.note}
-            />
+          <SectionLabel text="TOXIC LOOKALIKES" />
+          <View className="gap-2 rounded-[16px] bg-blushBg p-3.5">
+            {r.toxic_lookalikes.map((l) => (
+              <View key={l} className="flex-row gap-2">
+                <Ionicons name="warning" size={13} color={tokens.rust} style={{ marginTop: 2 }} />
+                <Text className="flex-1 font-body text-[13px] text-forest">{l}</Text>
+              </View>
+            ))}
           </View>
         </View>
       ) : null}
 
-      {/* how to tell */}
-      <View className="gap-2.5">
-        <SectionLabel text="HOW TO TELL" />
-        <View className="gap-2 rounded-[18px] border border-border bg-surface p-3.5">
-          {species.howToTell.map((tip) => (
-            <View key={tip} className="flex-row gap-2">
-              <Ionicons name="ellipse" size={7} color={tokens.leafText} style={{ marginTop: 6 }} />
-              <Text className="flex-1 font-body text-[13px] text-forest">{tip}</Text>
-            </View>
-          ))}
+      {/* benign lookalikes */}
+      {r.benign_lookalikes.length ? (
+        <View className="gap-2.5">
+          <SectionLabel text="SIMILAR & SAFE" />
+          <View className="gap-2 rounded-[16px] bg-mintBg p-3.5">
+            {r.benign_lookalikes.map((l) => (
+              <View key={l} className="flex-row gap-2">
+                <Ionicons name="leaf" size={13} color={tokens.leafText} style={{ marginTop: 2 }} />
+                <Text className="flex-1 font-body text-[13px] text-forest">{l}</Text>
+              </View>
+            ))}
+          </View>
         </View>
-      </View>
+      ) : null}
+
+      {/* safety caveat */}
+      {r.safety_caveat ? (
+        <View className="gap-2.5">
+          <SectionLabel text="HOW TO TELL" />
+          <View className="rounded-[18px] border border-border bg-surface p-3.5">
+            <Text className="font-body text-[13px] text-forest">{r.safety_caveat}</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {/* sources */}
+      {r.sources.length ? (
+        <Text className="font-body text-[11px] text-secondary">
+          Sources: {r.sources.join(", ")}
+        </Text>
+      ) : null}
     </ScrollView>
-  );
-}
-
-function Fact({ label, value }: { label: string; value: string }) {
-  return (
-    <View className="w-[48%] rounded-[14px] border border-border bg-surface p-3">
-      <Text className="font-body text-[10px] font-semibold uppercase tracking-wider text-secondary">
-        {label}
-      </Text>
-      <Text className="mt-1 font-body text-[13px] text-forest">{value}</Text>
-    </View>
-  );
-}
-
-function CompareCard({
-  tone,
-  name,
-  latin,
-  tag,
-  note,
-}: {
-  tone: "edible" | "danger";
-  name: string;
-  latin: string;
-  tag: string;
-  note: string;
-}) {
-  const edible = tone === "edible";
-  return (
-    <View
-      className="flex-1 gap-1.5 rounded-[16px] p-3"
-      style={{ backgroundColor: edible ? tokens.mintBg : tokens.blushBg }}
-    >
-      <Text className="font-display text-[15px] text-forest">{name}</Text>
-      <Text className="font-body text-[11px] italic text-secondary">{latin}</Text>
-      <Chip text={tag} bg={edible ? "mintBg" : "blushBg"} fg={edible ? "leafText" : "rust"} />
-      <Text className="font-body text-[12px] text-forest">{note}</Text>
-    </View>
   );
 }

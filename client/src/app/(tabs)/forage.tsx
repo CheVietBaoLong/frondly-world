@@ -14,21 +14,11 @@ export default function ForageCapture() {
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
 
-  // dev-note: `unsure` (long-press) previews the low-confidence path until the
-  // real model decides confidence. The captured photo URI rides through to the
-  // result card; identify() is still stubbed.
-  async function capture(unsure = false) {
-    let photo: string | undefined;
-    try {
-      const shot = await cameraRef.current?.takePictureAsync({ quality: 0.5 });
-      photo = shot?.uri;
-    } catch {
-      // fall through — result renders its placeholder without a photo
-    }
-    router.push({
-      pathname: "/forage/result",
-      params: { ...(photo ? { photo } : {}), ...(unsure ? { unsure: "1" } : {}) },
-    });
+  // Capture a photo and hand it to the result screen, which uploads it to the
+  // backend for identification.
+  async function capture() {
+    const shot = await cameraRef.current?.takePictureAsync({ quality: 0.5 });
+    router.push({ pathname: "/forage/result", params: shot?.uri ? { photo: shot.uri } : {} });
   }
 
   return (
@@ -84,8 +74,7 @@ export default function ForageCapture() {
         style={{ paddingTop: 18, paddingBottom: insets.bottom + 96 }}
       >
         <Pressable
-          onPress={() => capture(false)}
-          onLongPress={() => capture(true)}
+          onPress={() => capture()}
           disabled={!permission?.granted}
           className="h-[72px] w-[72px] items-center justify-center rounded-full bg-forest"
           style={{ opacity: permission?.granted ? 1 : 0.4 }}
