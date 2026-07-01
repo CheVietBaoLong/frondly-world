@@ -1,4 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,7 +17,7 @@ import { getSpecies, identify } from "@/forage/data";
 // real model decides (identify() is stubbed).
 export default function ForageResult() {
   const insets = useSafeAreaInsets();
-  const { unsure } = useLocalSearchParams<{ unsure?: string }>();
+  const { unsure, photo } = useLocalSearchParams<{ unsure?: string; photo?: string }>();
   const result = identify(unsure === "1");
 
   const pad = {
@@ -33,7 +34,7 @@ export default function ForageResult() {
           <Chip text="Low confidence" bg="blushBg" fg="rust" />
         </Header>
 
-        <Photo />
+        <Photo uri={photo} />
 
         <View className="gap-1.5">
           <Text className="font-display text-[22px] text-forest">
@@ -91,7 +92,7 @@ export default function ForageResult() {
     <ScrollView className="flex-1 bg-paper" contentContainerStyle={pad}>
       <Header title="Identified" />
 
-      <Photo />
+      <Photo uri={photo} />
 
       <View className="gap-2">
         <View>
@@ -132,7 +133,9 @@ export default function ForageResult() {
       <PrimaryButton
         icon="leaf"
         label="View full species info"
-        onPress={() => router.push(`/forage/species/${species.id}`)}
+        onPress={() =>
+          router.push({ pathname: "/forage/species/[id]", params: { id: species.id } })
+        }
       />
     </ScrollView>
   );
@@ -153,11 +156,16 @@ function Header({ title, children }: { title: string; children?: React.ReactNode
   );
 }
 
-// Captured-photo placeholder until expo-camera passes a real URI through.
-function Photo() {
+// The captured photo (from expo-camera); falls back to a placeholder if the
+// shot failed or the screen was reached without one.
+function Photo({ uri }: { uri?: string }) {
   return (
     <View className="h-[190px] items-center justify-center overflow-hidden rounded-[20px] bg-stoneBg">
-      <Ionicons name="image-outline" size={36} color={tokens.secondary} />
+      {uri ? (
+        <Image source={{ uri }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+      ) : (
+        <Ionicons name="image-outline" size={36} color={tokens.secondary} />
+      )}
     </View>
   );
 }

@@ -49,6 +49,12 @@
             "deploymentTarget": "16.4"
           }
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Frondly uses the camera to identify wild plants you point it at."
+        }
       ]
     ],
     "experiments": {
