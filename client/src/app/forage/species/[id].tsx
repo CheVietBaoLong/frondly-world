@@ -1,18 +1,34 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Chip } from "@/components/ui/chip";
+import { SafetyStrip } from "@/components/ui/safety-strip";
 import { SectionLabel } from "@/components/ui/section-label";
+import type { ColorToken } from "@/constants/tokens";
 import { tokens } from "@/constants/tokens";
-import { getLastResult } from "@/forage/api";
+import { getLastResult, type ForageState } from "@/forage/api";
+
+// There's no species catalog yet — the only id ever pushed is the sentinel
+// "current" (see result.tsx), which reads the last in-memory identification.
+// dev-note: once a real catalog/route exists, resolve `id` to a species record
+// instead of this sentinel check.
+const CURRENT_RESULT_ID = "current";
+
+const STATUS_CHIP: Record<ForageState, { text: string; bg: ColorToken; fg: ColorToken }> = {
+  verified_edible: { text: "Edible", bg: "mintBg", fg: "leafText" },
+  verified_toxic: { text: "Do not eat", bg: "blushBg", fg: "rust" },
+  unverified: { text: "Unverified", bg: "stoneBg", fg: "secondary" },
+  low_confidence: { text: "Low confidence", bg: "blushBg", fg: "rust" },
+};
 
 // Forage Species Detail — ports ForageDetailView. Renders the full curated info
 // from the last identification (facts, lookalikes, safety caveat, sources).
 export default function ForageSpecies() {
   const insets = useSafeAreaInsets();
-  const r = getLastResult();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const r = id === CURRENT_RESULT_ID ? getLastResult() : null;
 
   if (!r || !r.name) {
     return (
@@ -65,11 +81,7 @@ export default function ForageSpecies() {
             </Text>
           ) : null}
         </View>
-        <Chip
-          text={r.state === "verified_edible" ? "Edible" : "Caution"}
-          bg={r.state === "verified_edible" ? "mintBg" : "blushBg"}
-          fg={r.state === "verified_edible" ? "leafText" : "rust"}
-        />
+        <Chip {...STATUS_CHIP[r.state]} />
       </View>
 
       {/* quick facts */}
@@ -133,6 +145,8 @@ export default function ForageSpecies() {
           Sources: {r.sources.join(", ")}
         </Text>
       ) : null}
+
+      <SafetyStrip text={r.safety_strip} />
     </ScrollView>
   );
 }

@@ -56,12 +56,14 @@ export async function identifyPhoto(uri: string): Promise<ForageResult> {
   const body = await new Promise<string>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `${API_BASE}/forage/identify`);
+    xhr.timeout = 30_000;
     xhr.onload = () =>
       xhr.status >= 200 && xhr.status < 300
         ? resolve(xhr.responseText)
         : reject(new Error(`Identify failed (${xhr.status}).`));
     xhr.onerror = () =>
       reject(new Error("Network error — is the server running and adb reverse tcp:8000 set?"));
+    xhr.ontimeout = () => reject(new Error("Identify timed out — is the server running?"));
     xhr.send(form);
   });
 

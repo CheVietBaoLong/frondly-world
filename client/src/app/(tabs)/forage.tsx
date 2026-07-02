@@ -15,10 +15,13 @@ export default function ForageCapture() {
   const cameraRef = useRef<CameraView>(null);
 
   // Capture a photo and hand it to the result screen, which uploads it to the
-  // backend for identification.
+  // backend for identification. No-ops (rather than navigating without a
+  // photo) if the camera isn't ready or the capture fails.
   async function capture() {
-    const shot = await cameraRef.current?.takePictureAsync({ quality: 0.5 });
-    router.push({ pathname: "/forage/result", params: shot?.uri ? { photo: shot.uri } : {} });
+    if (!cameraRef.current) return;
+    const shot = await cameraRef.current.takePictureAsync({ quality: 0.5 });
+    if (!shot?.uri) return;
+    router.push({ pathname: "/forage/result", params: { photo: shot.uri } });
   }
 
   return (
