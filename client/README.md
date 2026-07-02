@@ -10,7 +10,7 @@ so you must use a **development build**.
 
 ### Prerequisites
 
-- Node + npm
+- Node + Yarn (this repo commits `yarn.lock` — use Yarn, not npm, so installs match)
 - **JDK 17** — React Native 0.85's Gradle/AGP does **not** build on JDK 21/25.
   Point `JAVA_HOME` at a JDK 17 install (e.g. Temurin 17).
 - Android SDK (Android Studio) and a device or emulator.
@@ -50,7 +50,7 @@ Open the installed **dev-client** app and connect to `http://localhost:8081`.
 1. Install dependencies
 
    ```bash
-   npm install
+   yarn install
    ```
 
 2. Start the app
@@ -65,6 +65,10 @@ In the output, you'll find options to open the app in a
 - [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
 - [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
 - ~~[Expo Go](https://expo.dev/go)~~ — **not supported** for this project (see the Android section above); use a development build.
+
+> `yarn ios` builds and installs a native dev client via `expo run:ios`
+> (Xcode + CocoaPods required) rather than launching Expo Go — same reason as
+> Android above, this app depends on native modules Expo Go doesn't bundle.
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
