@@ -12,8 +12,8 @@ let cached: { at: number; value: Weather | null } | null = null;
 // Weather for the assistant card. Returns null while loading and on failure —
 // the card renders its generic fallback for both, per the spec.
 export function useWeather(): Weather | null {
-  const [weather, setWeather] = useState<Weather | null>(cached?.value ?? null);
-
+  const initial = cached && Date.now() - cached.at < TTL_MS ? cached.value : null;
+  const [weather, setWeather] = useState<Weather | null>(initial);
   useEffect(() => {
     if (cached && Date.now() - cached.at < TTL_MS) return;
 
