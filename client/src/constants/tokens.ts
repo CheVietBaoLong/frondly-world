@@ -16,6 +16,7 @@ export const tokens = {
   blushBg: "#F2DDD4",
   stoneBg: "#ECEEE8",
   border: "#DCE2D2",
+  white: "#FFFFFF",
   onDarkSecondary: "#C3CDBE",
 } as const;
 

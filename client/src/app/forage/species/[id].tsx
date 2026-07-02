@@ -8,13 +8,12 @@ import { SafetyStrip } from "@/components/ui/safety-strip";
 import { SectionLabel } from "@/components/ui/section-label";
 import type { ColorToken } from "@/constants/tokens";
 import { tokens } from "@/constants/tokens";
-import { getLastResult, type ForageState } from "@/forage/api";
-
-// There's no species catalog yet — the only id ever pushed is the sentinel
-// "current" (see result.tsx), which reads the last in-memory identification.
-// dev-note: once a real catalog/route exists, resolve `id` to a species record
-// instead of this sentinel check.
-const CURRENT_RESULT_ID = "current";
+import {
+  buildForageSpeciesId,
+  formatLookalike,
+  getLastResult,
+  type ForageState,
+} from "@/forage/api";
 
 const STATUS_CHIP: Record<ForageState, { text: string; bg: ColorToken; fg: ColorToken }> = {
   verified_edible: { text: "Edible", bg: "mintBg", fg: "leafText" },
@@ -28,7 +27,10 @@ const STATUS_CHIP: Record<ForageState, { text: string; bg: ColorToken; fg: Color
 export default function ForageSpecies() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const r = id === CURRENT_RESULT_ID ? getLastResult() : null;
+  const r = getLastResult();
+  const routeId = typeof id === "string" ? id : undefined;
+  const expectedId = r ? buildForageSpeciesId(r) : null;
+  const idMatches = !routeId || routeId === "current" || routeId === expectedId;
 
   if (!r || !r.name) {
     return (
@@ -38,6 +40,22 @@ export default function ForageSpecies() {
       >
         <Text className="text-center font-body text-[13px] text-secondary">
           No species selected. Identify a plant first.
+        </Text>
+        <Pressable onPress={() => router.back()} className="rounded-full bg-forest px-5 py-2.5">
+          <Text className="font-body text-[13px] font-semibold text-white">Back</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (routeId && !idMatches) {
+    return (
+      <View
+        className="flex-1 items-center justify-center gap-3 bg-paper px-8"
+        style={{ paddingTop: insets.top }}
+      >
+        <Text className="text-center font-body text-[13px] text-secondary">
+          This species detail is not available for the requested route.
         </Text>
         <Pressable onPress={() => router.back()} className="rounded-full bg-forest px-5 py-2.5">
           <Text className="font-body text-[13px] font-semibold text-white">Back</Text>
@@ -104,22 +122,25 @@ export default function ForageSpecies() {
         <View className="gap-2.5">
           <SectionLabel text="TOXIC LOOKALIKES" />
           <View className="gap-2 rounded-[16px] bg-blushBg p-3.5">
-            {r.toxic_lookalikes.map((l) => (
-              <View key={l.common_name} className="flex-row gap-2">
-                <Ionicons name="warning" size={13} color={tokens.rust} style={{ marginTop: 2 }} />
-                <View className="flex-1">
-                  <Text className="font-body text-[13px] font-semibold text-forest">
-                    {l.common_name}
-                    {l.scientific_name ? ` (${l.scientific_name})` : ""}
-                  </Text>
-                  {l.how_to_tell_apart ? (
-                    <Text className="mt-0.5 font-body text-[12px] text-secondary">
-                      {l.how_to_tell_apart}
+            {r.toxic_lookalikes.map((l, index) => {
+              const howToTellApart =
+                typeof l === "object" && l !== null ? l.how_to_tell_apart : null;
+              return (
+                <View key={`${formatLookalike(l)}-${index}`} className="flex-row gap-2">
+                  <Ionicons name="warning" size={13} color={tokens.rust} style={{ marginTop: 2 }} />
+                  <View className="flex-1">
+                    <Text className="font-body text-[13px] font-semibold text-forest">
+                      {formatLookalike(l)}
                     </Text>
-                  ) : null}
+                    {howToTellApart ? (
+                      <Text className="mt-0.5 font-body text-[12px] text-secondary">
+                        {howToTellApart}
+                      </Text>
+                    ) : null}
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
       ) : null}
@@ -129,10 +150,12 @@ export default function ForageSpecies() {
         <View className="gap-2.5">
           <SectionLabel text="SIMILAR & SAFE" />
           <View className="gap-2 rounded-[16px] bg-mintBg p-3.5">
-            {r.benign_lookalikes.map((l) => (
-              <View key={l} className="flex-row gap-2">
+            {r.benign_lookalikes.map((l, index) => (
+              <View key={`${formatLookalike(l)}-${index}`} className="flex-row gap-2">
                 <Ionicons name="leaf" size={13} color={tokens.leafText} style={{ marginTop: 2 }} />
-                <Text className="flex-1 font-body text-[13px] text-forest">{l}</Text>
+                <Text className="flex-1 font-body text-[13px] text-forest">
+                  {formatLookalike(l)}
+                </Text>
               </View>
             ))}
           </View>

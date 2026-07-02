@@ -6,10 +6,13 @@ result states; below the confidence threshold the species name is suppressed.
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import asdict, dataclass, field
 
 from .dataset import Dataset, load as load_dataset
 from .vision import VisionBackend
+
+logger = logging.getLogger(__name__)
 
 CONFIDENCE_THRESHOLD = 0.70  # placeholder; tune against real trail photos
 
@@ -20,6 +23,10 @@ SAFETY_STRIP = (
 RESEARCHING_NOTE = (
     "We only show foraging information for plants in our research-verified database. "
     "We're expanding verified coverage — more plants are coming."
+)
+SERVICE_UNAVAILABLE_NOTE = (
+    "The plant ID service is temporarily unavailable. We could not verify this plant right now, "
+    "so we’re showing a safe low-confidence fallback instead."
 )
 
 _FACT_FIELDS = ("edible_part", "preparation", "season", "habitat", "range")
@@ -48,7 +55,11 @@ class ForageResult:
 
 def identify_wild_plant(image, vision: VisionBackend, dataset: Dataset | None = None) -> ForageResult:
     ds = dataset or load_dataset()
-    candidates = vision.identify(image)
+    try:
+        candidates = vision.identify(image)
+    except Exception:
+        logger.exception("vision.identify failed")
+        return ForageResult("low_confidence", 0.0, message=SERVICE_UNAVAILABLE_NOTE)
 
     if not candidates:
         return ForageResult("low_confidence", 0.0, message=RESEARCHING_NOTE)

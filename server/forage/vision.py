@@ -13,6 +13,8 @@ from typing import Protocol
 
 from pydantic import BaseModel
 
+from google.genai import errors as genai_errors
+
 
 @dataclass
 class Candidate:
@@ -91,14 +93,20 @@ class GeminiVision:
         from google.genai import types
 
         image_bytes, mime = _read_image(image)
-        resp = self._client.models.generate_content(
-            model=self._model,
-            contents=[types.Part.from_bytes(data=image_bytes, mime_type=mime), _PROMPT],
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=_GeminiResponse,
-            ),
-        )
+        try:
+            resp = self._client.models.generate_content(
+                model=self._model,
+                contents=[types.Part.from_bytes(data=image_bytes, mime_type=mime), _PROMPT],
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=_GeminiResponse,
+                ),
+            )
+        except genai_errors.ClientError as exc:
+            if getattr(exc, "status_code", None) == 429:
+                return []
+            raise
+
         parsed: _GeminiResponse = resp.parsed
         cands = [Candidate(c.name, c.scientific_name, c.confidence) for c in parsed.candidates]
         return sorted(cands, key=lambda x: x.confidence, reverse=True)

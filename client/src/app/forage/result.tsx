@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -9,7 +9,12 @@ import { Chip } from "@/components/ui/chip";
 import { SafetyStrip } from "@/components/ui/safety-strip";
 import { SectionLabel } from "@/components/ui/section-label";
 import { tokens } from "@/constants/tokens";
-import { identifyPhoto, type ForageResult } from "@/forage/api";
+import {
+  buildForageSpeciesId,
+  formatLookalike,
+  identifyPhoto,
+  type ForageResult as ForageResultType,
+} from "@/forage/api";
 
 // Forage Result — ports ForageResultView + ForageLowConfidenceView. Uploads the
 // captured photo to the backend and renders one of the four safety-first states
@@ -19,15 +24,23 @@ export default function ForageResult() {
   const insets = useSafeAreaInsets();
   const { photo } = useLocalSearchParams<{ photo?: string }>();
   const [status, setStatus] = useState<"loading" | "error" | "done">(photo ? "loading" : "error");
-  const [result, setResult] = useState<ForageResult | null>(null);
+  const [result, setResult] = useState<ForageResultType | null>(null);
   const [errorMsg, setErrorMsg] = useState(photo ? "" : "No photo to identify.");
 
   useEffect(() => {
     if (!photo) return;
     let cancelled = false;
     identifyPhoto(photo)
-      .then((r) => !cancelled && (setResult(r), setStatus("done")))
-      .catch((e) => !cancelled && (setErrorMsg(String(e?.message ?? e)), setStatus("error")));
+      .then((r) => {
+        if (cancelled) return;
+        setResult(r);
+        setStatus("done");
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setErrorMsg(String(e?.message ?? e));
+        setStatus("error");
+      });
     return () => {
       cancelled = true;
     };
@@ -180,10 +193,12 @@ export default function ForageResult() {
             <Ionicons name="warning" size={18} color={tokens.rust} />
             <Text className="font-display text-[15px] text-rust">Toxic lookalike to know</Text>
           </View>
-          {result.toxic_lookalikes.map((l) => (
-            <Text key={l.common_name} className="font-body text-[13px] text-forest">
-              • {l.common_name}
-              {l.scientific_name ? ` (${l.scientific_name})` : ""}
+          {result.toxic_lookalikes.map((l, index) => (
+            <Text
+              key={`${formatLookalike(l)}-${index}`}
+              className="font-body text-[13px] text-forest"
+            >
+              • {formatLookalike(l)}
             </Text>
           ))}
         </View>
@@ -196,14 +211,19 @@ export default function ForageResult() {
       <PrimaryButton
         icon="leaf"
         label="View full species info"
-        onPress={() => router.push({ pathname: "/forage/species/[id]", params: { id: "current" } })}
+        onPress={() =>
+          router.push({
+            pathname: "/forage/species/[id]",
+            params: { id: result.name ? buildForageSpeciesId(result) : "species" },
+          })
+        }
       />
       <SafetyStrip text={result.safety_strip} />
     </ScrollView>
   );
 }
 
-function Header({ title, children }: { title: string; children?: React.ReactNode }) {
+function Header({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <View className="flex-row items-center gap-3">
       <Pressable
@@ -225,7 +245,7 @@ function NameBlock({
 }: {
   name?: string | null;
   scientific?: string | null;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <View className="gap-2">

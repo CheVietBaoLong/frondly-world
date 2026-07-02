@@ -1,9 +1,11 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { router } from "expo-router";
+import { router, useIsFocused } from "expo-router";
 import { useRef } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { CameraPreview } from "@/components/camera-preview";
 
 import { tokens } from "@/constants/tokens";
 
@@ -11,17 +13,22 @@ import { tokens } from "@/constants/tokens";
 // wild plant and capture to identify it.
 export default function ForageCapture() {
   const insets = useSafeAreaInsets();
-  const [permission, requestPermission] = useCameraPermissions();
+  const [permission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
 
   // Capture a photo and hand it to the result screen, which uploads it to the
   // backend for identification. No-ops (rather than navigating without a
   // photo) if the camera isn't ready or the capture fails.
   async function capture() {
-    if (!cameraRef.current) return;
-    const shot = await cameraRef.current.takePictureAsync({ quality: 0.5 });
-    if (!shot?.uri) return;
-    router.push({ pathname: "/forage/result", params: { photo: shot.uri } });
+    if (!permission?.granted || !cameraRef.current) return;
+    try {
+      const shot = await cameraRef.current.takePictureAsync({ quality: 0.5 });
+      if (!shot?.uri) return;
+      router.push({ pathname: "/forage/result", params: { photo: shot.uri } });
+    } catch {
+      // Ignore capture failures (e.g. camera not ready) and keep the user on the capture screen.
+      return;
+    }
   }
 
   return (
@@ -42,34 +49,12 @@ export default function ForageCapture() {
       </View>
 
       {/* viewfinder */}
-      <View className="mx-4 mt-4 flex-1 overflow-hidden rounded-[24px] bg-stoneBg">
-        {permission?.granted ? (
-          <CameraView ref={cameraRef} style={{ flex: 1 }} facing="back" mode="picture" />
-        ) : (
-          <View className="flex-1 items-center justify-center gap-3 px-8">
-            <Ionicons name="camera-outline" size={40} color={tokens.secondary} />
-            <Text className="text-center font-body text-[13px] text-secondary">
-              {permission ? "Camera access is needed to identify plants." : "Preparing the camera…"}
-            </Text>
-            {permission && !permission.granted ? (
-              <Pressable onPress={requestPermission} className="rounded-full bg-forest px-5 py-2.5">
-                <Text className="font-body text-[13px] font-semibold text-white">
-                  Enable camera
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
-        )}
-        {permission?.granted ? (
-          <View className="absolute bottom-4 w-full items-center">
-            <View className="rounded-full bg-forest/90 px-3.5 py-2">
-              <Text className="font-body text-[13px] text-white">
-                Snap a berry, leaf, or whole plant
-              </Text>
-            </View>
-          </View>
-        ) : null}
-      </View>
+      <CameraPreview
+        cameraRef={cameraRef}
+        instructionText="Snap a berry, leaf, or whole plant"
+        isFocused={useIsFocused()}
+        style={{ flex: 1, marginHorizontal: 16, marginTop: 16 }}
+      />
 
       {/* controls */}
       <View

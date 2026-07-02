@@ -8,6 +8,11 @@ from forage.dataset import load as load_dataset
 from forage.identify import identify_wild_plant
 from forage.vision import Candidate, StubVision
 
+
+class QuotaFailVision:
+    def identify(self, image):
+        raise RuntimeError("quota exhausted")
+
 DS = load_dataset()
 
 
@@ -50,6 +55,13 @@ def test_toxic_wins_collision_indexing():
     # toxic_reference indexed first; a confident toxic match must surface the warning.
     r = run(Candidate("Death camas", "Toxicoscordion venenosum", 0.99))
     assert r.state in ("verified_toxic", "unverified"), r.state
+
+
+def test_quota_failure_falls_back_to_low_confidence():
+    r = identify_wild_plant("img", QuotaFailVision(), DS)
+    assert r.state == "low_confidence", r.state
+    assert r.name is None
+    assert r.message
 
 
 if __name__ == "__main__":
