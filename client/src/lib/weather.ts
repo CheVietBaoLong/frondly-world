@@ -46,8 +46,10 @@ export async function getWeather(): Promise<Weather | null> {
     if (!city) return null;
 
     // dev-note: Fahrenheit hardcoded — derive from device locale if non-US users matter.
+    const lat = Math.round(latitude * 100) / 100;
+    const lon = Math.round(longitude * 100) / 100;
     const res = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
         `&current=weather_code,temperature_2m&temperature_unit=fahrenheit`
     );
     if (!res.ok) return null;
