@@ -10,7 +10,7 @@ so you must use a **development build**.
 
 ### Prerequisites
 
-- Node + npm
+- Node + Yarn (this repo commits `yarn.lock` — use Yarn, not npm, so installs match)
 - **JDK 17** — React Native 0.85's Gradle/AGP does **not** build on JDK 21/25.
   Point `JAVA_HOME` at a JDK 17 install (e.g. Temurin 17).
 - Android SDK (Android Studio) and a device or emulator.
@@ -50,7 +50,7 @@ Open the installed **dev-client** app and connect to `http://localhost:8081`.
 1. Install dependencies
 
    ```bash
-   npm install
+   yarn install
    ```
 
 2. Start the app

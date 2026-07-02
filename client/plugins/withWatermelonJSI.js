@@ -48,8 +48,14 @@ function withJsiAppBuildGradle(config) {
   return withAppBuildGradle(config, (mod) => {
     let contents = mod.modResults.contents;
     if (!contents.includes("pickFirst '**/libc++_shared.so'")) {
+      const anchor = "android {";
+      if (!contents.includes(anchor)) {
+        throw new Error(
+          `[withWatermelonJSI] Could not find '${anchor}' in app/build.gradle. The Expo template changed; update this plugin.`
+        );
+      }
       contents = contents.replace(
-        "android {",
+        anchor,
         `android {
     packagingOptions {
         pickFirst '**/libc++_shared.so'
@@ -57,8 +63,14 @@ function withJsiAppBuildGradle(config) {
       );
     }
     if (!contents.includes("implementation project(':watermelondb-jsi')")) {
+      const anchor = "dependencies {";
+      if (!contents.includes(anchor)) {
+        throw new Error(
+          `[withWatermelonJSI] Could not find '${anchor}' in app/build.gradle. The Expo template changed; update this plugin.`
+        );
+      }
       contents = contents.replace(
-        "dependencies {",
+        anchor,
         `dependencies {
     implementation project(':watermelondb-jsi')`
       );
@@ -96,10 +108,13 @@ function withJsiMainApplication(config) {
 
     const importLine = "import com.nozbe.watermelondb.jsi.WatermelonDBJSIPackage";
     if (!contents.includes(importLine)) {
-      contents = contents.replace(
-        "import android.app.Application",
-        `import android.app.Application\n${importLine}`
-      );
+      const importAnchor = "import android.app.Application";
+      if (!contents.includes(importAnchor)) {
+        throw new Error(
+          `[withWatermelonJSI] Could not find '${importAnchor}' in MainApplication.kt. The Expo template changed; update this plugin.`
+        );
+      }
+      contents = contents.replace(importAnchor, `${importAnchor}\n${importLine}`);
     }
 
     if (!contents.includes("add(WatermelonDBJSIPackage())")) {
