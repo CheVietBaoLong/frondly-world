@@ -10,12 +10,14 @@ import { ScoreBadge } from "@/components/ui/score-badge";
 import { SectionLabel } from "@/components/ui/section-label";
 import { tokens } from "@/constants/tokens";
 import { useGarden, type PlantVM } from "@/hooks/use-garden";
+import { useWeather } from "@/hooks/use-weather";
 
 // Garden Home — ports GardenHomeView. Reactive list of the user's plants split
 // into Needs Attention / Thriving, with a conversational care card up top.
 export default function Garden() {
   const insets = useSafeAreaInsets();
   const { plants } = useGarden();
+  const weather = useWeather();
   const needCare = plants.filter((p) => p.needsAttention);
   const thriving = plants.filter((p) => !p.needsAttention);
 
@@ -41,10 +43,13 @@ export default function Garden() {
         </View>
       </View>
 
-      {/* dev-note: static copy — live weather lands with api.ts (deferred). */}
       <AssistantCard
-        icon={<Ionicons name="sunny" size={18} color={tokens.forest} />}
-        title="Boston · sunny"
+        icon={<Ionicons name={weather?.icon ?? "sunny"} size={18} color={tokens.forest} />}
+        title={
+          weather
+            ? `${weather.city} · ${Math.round(weather.tempF)}° · ${weather.label}`
+            : "Your garden"
+        }
         detail={
           needCare.length === 0
             ? "Calm week ahead — everyone's well watered."

@@ -55,6 +55,12 @@
         {
           "cameraPermission": "Frondly uses the camera to identify wild plants you point it at."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Frondly uses your location to show local weather for your plants."
+        }
       ]
     ],
     "experiments": {

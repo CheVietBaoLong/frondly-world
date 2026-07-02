@@ -13,7 +13,11 @@
  *   gradle linking (identical to the upstream plugin) plus that correct registration.
  *
  * Usage: set `disableJsi: true` on @morrowdigital/watermelondb-expo-plugin (so it skips
- *   its broken Android injection) and add this plugin after it in app.json.
+ *   its broken Android injection) and add this plugin after it in app.json. On iOS, the
+ *   upstream plugin unconditionally injects a `pod 'simdjson'` line into the Podfile
+ *   (not gated by `disableJsi`), which duplicates what Expo autolinking already links via
+ *   @nozbe/simdjson's own podspec — see package.json's `expo.autolinking.exclude`, which
+ *   excludes it from autolinking so the upstream plugin's manual pod stays the one source.
  */
 const {
   withSettingsGradle,
