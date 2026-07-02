@@ -15,9 +15,10 @@
  * Usage: set `disableJsi: true` on @morrowdigital/watermelondb-expo-plugin (so it skips
  *   its broken Android injection) and add this plugin after it in app.json. On iOS, the
  *   upstream plugin unconditionally injects a `pod 'simdjson'` line into the Podfile
- *   (not gated by `disableJsi`), which duplicates what Expo autolinking already links via
- *   @nozbe/simdjson's own podspec — see package.json's `expo.autolinking.exclude`, which
- *   excludes it from autolinking so the upstream plugin's manual pod stays the one source.
+ *   (not gated by `disableJsi`). By default Expo autolinking would ALSO link that pod via
+ *   @nozbe/simdjson's own podspec, and CocoaPods refuses the duplicate — so
+ *   package.json's `expo.autolinking.exclude` opts it out of autolinking, leaving the
+ *   upstream plugin's manual pod line as the single source.
  */
 const {
   withSettingsGradle,

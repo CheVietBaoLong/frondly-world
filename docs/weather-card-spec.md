@@ -33,7 +33,8 @@ Replace the static "Boston · sunny" `AssistantCard` on Garden Home
 - Exported WMO weather-code → `{ label, icon }` mapping (~7 buckets: clear,
   partly cloudy, cloudy/fog, drizzle/rain, snow, showers, thunderstorm),
   icons chosen from Ionicons (`sunny`, `partly-sunny`, `cloudy`, `rainy`,
-  `snow`, `thunderstorm`).
+  `snow`, `thunderstorm`). Buckets may share an icon and label — drizzle/rain
+  and showers both render as `rainy`; fog reuses `cloudy`.
 - Any failure (permission denied, geocode miss, network error) → resolve
   `null`. Never throws to the UI.
 
