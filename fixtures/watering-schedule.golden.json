@@ -1,0 +1,32 @@
+[
+  {
+    "species": "monstera",
+    "precip_7d": 0,
+    "history": [{ "date": "2026-06-20" }],
+    "expected": { "next_water_date": "2026-06-27", "interval_days": 7, "reason": "monstera: base 7d, no rain adjustment" }
+  },
+  {
+    "species": "monstera",
+    "precip_7d": 30,
+    "history": [{ "date": "2026-06-20" }],
+    "expected": { "next_water_date": "2026-06-30", "interval_days": 10, "reason": "monstera: base 7d, +3d for 30mm recent rain" }
+  },
+  {
+    "species": "mystery plant",
+    "precip_7d": 0,
+    "history": [],
+    "expected": { "next_water_date": null, "interval_days": 7, "reason": "mystery plant: base 7d, no rain adjustment" }
+  },
+  {
+    "species": "fern",
+    "precip_7d": 100,
+    "history": [{ "date": "2026-06-01" }],
+    "expected": { "next_water_date": "2026-06-09", "interval_days": 8, "reason": "fern: base 4d, +4d for 100mm recent rain" }
+  },
+  {
+    "species": "SNAKE PLANT",
+    "precip_7d": 0,
+    "history": [{ "date": "2026-03-01" }],
+    "expected": { "next_water_date": "2026-03-15", "interval_days": 14, "reason": "SNAKE PLANT: base 14d, no rain adjustment" }
+  }
+]

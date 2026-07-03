@@ -1,5 +1,6 @@
 """Offline self-checks for plant-care tools. Run: python tests/test_plantcare_tools.py"""
 import inspect
+import json
 import sys
 from pathlib import Path
 
@@ -52,6 +53,14 @@ def test_schedule_unknown_species_default_and_no_history():
     r = watering_schedule("mystery plant", {}, [])
     assert r["interval_days"] == 7
     assert r["next_water_date"] is None
+
+
+def test_schedule_matches_golden_fixture():
+    fixture_path = Path(__file__).resolve().parent.parent.parent / "fixtures" / "watering-schedule.golden.json"
+    cases = json.loads(fixture_path.read_text())
+    for case in cases:
+        r = watering_schedule(case["species"], {"precip_7d": case["precip_7d"]}, case["history"])
+        assert r == case["expected"], (case, r)
 
 
 import plantcare.tools.weather as weather_mod
