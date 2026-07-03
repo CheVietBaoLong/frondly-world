@@ -10,6 +10,9 @@ import { seedSampleGardenIfEmpty } from "@/db/seed";
 export type PlantVM = {
   id: string;
   name: string;
+  species: string;
+  lastWatered: Date | null;
+  dateAdded: Date;
   statusLine: string;
   score: number | null;
   needsAttention: boolean;
@@ -24,6 +27,9 @@ async function toVM(plant: Plant): Promise<PlantVM> {
   return {
     id: plant.id,
     name: plant.name,
+    species: plant.species,
+    lastWatered: plant.lastWatered,
+    dateAdded: plant.dateAdded,
     statusLine: await plant.statusLine(),
     score,
     needsAttention: await plant.needsAttention(),

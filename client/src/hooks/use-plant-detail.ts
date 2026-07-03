@@ -12,6 +12,8 @@ export type VinePoint = { score: number; label: string };
 export type PlantDetailVM = {
   name: string;
   species: string;
+  lastWatered: Date | null;
+  dateAdded: Date;
   heroPhoto: string | null;
   score: number | null;
   chip: { label: string; bg: ColorToken; fg: ColorToken };
@@ -30,6 +32,8 @@ function buildVM(plant: Plant, obs: Observation[]): PlantDetailVM {
   return {
     name: plant.name,
     species: plant.species,
+    lastWatered: plant.lastWatered,
+    dateAdded: plant.dateAdded,
     heroPhoto: plant.heroPhoto,
     score,
     chip: chipForScore(score),
@@ -44,15 +48,17 @@ function buildVM(plant: Plant, obs: Observation[]): PlantDetailVM {
 }
 
 // Reactive plant-detail view-model. Ports PlantDetailView: fetches the plant,
-// then subscribes to its observations (oldest→newest) and rebuilds the VM on
-// every journal change. `vm` is null while loading or if the id doesn't exist.
-// dev-note: plant name/species/heroPhoto are read once at find(); they don't
-// change in slice 1 (no edit flow). The reactive part is the observation journal.
+// then subscribes to both the Plant record itself (name/species/lastWatered/...)
+// and its observations (oldest→newest), rebuilding the VM on either source of
+// change. `vm` is null while loading or if the id doesn't exist.
 export function usePlantDetail(id: string): PlantDetailVM | null {
   const [vm, setVm] = useState<PlantDetailVM | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    let latestObs: Observation[] = [];
+    let obsLoaded = false;
+    let plantSub: { unsubscribe: () => void } | null = null;
     let obsSub: { unsubscribe: () => void } | null = null;
 
     database
@@ -60,10 +66,26 @@ export function usePlantDetail(id: string): PlantDetailVM | null {
       .find(id)
       .then((plant) => {
         if (cancelled) return;
+
+        // Plant.observe() re-emits whenever a field on the record changes
+        // (e.g. lastWatered via a mark-watered write) — without this,
+        // marking a plant watered wouldn't re-render this screen, since
+        // the observations-only subscription below doesn't fire on plant
+        // field changes. Plant.observe() is a BehaviorSubject and fires
+        // synchronously on subscribe, before the async observations query
+        // below has ever resolved — obsLoaded gates that first, premature
+        // emission so the screen never renders a real layout with an
+        // artificially empty journal.
+        plantSub = plant.observe().subscribe((p) => {
+          if (!cancelled && obsLoaded) setVm(buildVM(p, latestObs));
+        });
+
         obsSub = plant.observations
           .extend(Q.sortBy("date", Q.asc))
           .observe()
           .subscribe((obs) => {
+            latestObs = obs;
+            obsLoaded = true;
             if (!cancelled) setVm(buildVM(plant, obs));
           });
       })
@@ -76,6 +98,7 @@ export function usePlantDetail(id: string): PlantDetailVM | null {
 
     return () => {
       cancelled = true;
+      plantSub?.unsubscribe();
       obsSub?.unsubscribe();
     };
   }, [id]);

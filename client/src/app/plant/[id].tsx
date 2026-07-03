@@ -9,17 +9,39 @@ import { Chip } from "@/components/ui/chip";
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { SectionLabel } from "@/components/ui/section-label";
 import { tokens } from "@/constants/tokens";
+import { database } from "@/db";
+import { Plant } from "@/db/models/Plant";
 import { usePlantDetail, type VinePoint } from "@/hooks/use-plant-detail";
+import { useRecentRainfall } from "@/hooks/use-recent-rainfall";
+import { useWateringSchedules } from "@/hooks/use-watering-schedules";
+import { scheduleStatus } from "@/lib/care";
+
+async function markWatered(plantId: string) {
+  await database.write(async () => {
+    const plant = await database.get<Plant>("plants").find(plantId);
+    await plant.update((p) => {
+      p.lastWatered = new Date();
+    });
+  });
+}
 
 // Plant Detail — ports PlantDetailView. Pushed over the tabs from a Garden card.
 export default function PlantDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const vm = usePlantDetail(id);
+  const precip7d = useRecentRainfall();
+  const schedules = useWateringSchedules(
+    vm ? [{ id, species: vm.species, lastWatered: vm.lastWatered, dateAdded: vm.dateAdded }] : [],
+    precip7d
+  );
 
   if (!vm) {
     return <View className="flex-1 bg-paper" style={{ paddingTop: insets.top }} />;
   }
+
+  const schedule = schedules.get(id) ?? null;
+  const status = scheduleStatus(schedule?.next_water_date ?? null);
 
   return (
     <ScrollView
@@ -100,12 +122,18 @@ export default function PlantDetail() {
 
       {/* next care + diagnose CTA */}
       <View className="gap-3">
-        {/* dev-note: static copy — live scheduling lands with api.ts (deferred). */}
         <AssistantCard
           icon={<Ionicons name="water" size={18} color={tokens.forest} />}
-          title="Water Thursday"
-          detail="Heatwave coming Sat — I moved watering up 2 days."
+          title={status.label}
+          detail={schedule?.reason ?? "Add a watering to start the schedule."}
         />
+        <Pressable
+          onPress={() => markWatered(id).catch((e) => console.error("mark watered failed:", e))}
+          className="flex-row items-center justify-center gap-2 rounded-[14px] border border-border bg-surface py-3"
+        >
+          <Ionicons name="checkmark-circle-outline" size={16} color={tokens.leafText} />
+          <Text className="font-body text-[15px] font-semibold text-leafText">Mark watered</Text>
+        </Pressable>
         <Pressable
           onPress={() => router.push({ pathname: "/plant/diagnose", params: { id } })}
           className="flex-row items-center justify-center gap-2 rounded-[14px] bg-citron py-3.5"

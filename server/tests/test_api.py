@@ -39,6 +39,27 @@ def test_identify_returns_state_without_safe_verdict():
     assert body["safety_strip"]       # standing educational-only line always present
 
 
+def test_watering_schedule_endpoint():
+    r = client.post(
+        "/plantcare/watering_schedule",
+        json={"species": "monstera", "precip_7d": 30, "history": [{"date": "2026-06-20"}]},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json() == {
+        "next_water_date": "2026-06-30",
+        "interval_days": 10,
+        "reason": "monstera: base 7d, +3d for 30mm recent rain",
+    }
+
+
+def test_watering_schedule_endpoint_defaults_empty_history():
+    r = client.post("/plantcare/watering_schedule", json={"species": "unknown plant"})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["next_water_date"] is None
+    assert body["interval_days"] == 7
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     for fn in tests:
