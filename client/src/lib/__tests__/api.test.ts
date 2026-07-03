@@ -86,6 +86,10 @@ describe("extractDiagnosis", () => {
       })
     ).toBeNull();
   });
+
+  it("ignores partial streaming chunks (the aggregated final event saves)", () => {
+    expect(extractDiagnosis({ ...diagnosisEvent(GOOD_ARGS), partial: true })).toBeNull();
+  });
 });
 
 describe("foldEventText", () => {

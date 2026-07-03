@@ -66,6 +66,10 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
 // Map a record_diagnosis function call (snake_case args — the tool's Python
 // signature) to a Diagnosis. Malformed args are clamped/defaulted, not fatal.
 export function extractDiagnosis(event: any): Diagnosis | null {
+  // ADK progressive streaming emits function-call chunks twice: once with
+  // partial: true and again in the aggregated final event. Only the final
+  // event counts — same rule ADK itself uses to decide when tools execute.
+  if (event?.partial) return null;
   for (const call of functionCallsOfEvent(event)) {
     if (call.name !== "record_diagnosis") continue;
     const args = call.args ?? {};
