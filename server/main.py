@@ -11,9 +11,11 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import Depends, UploadFile
 from google.adk.cli.fast_api import get_fast_api_app
+from pydantic import BaseModel
 
 from forage.identify import identify_wild_plant
 from forage.vision import GeminiVision, VisionBackend
+from plantcare.tools.schedule import watering_schedule
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")  # GEMINI_API_KEY
 
@@ -33,3 +35,14 @@ def get_vision() -> VisionBackend:
 async def forage_identify(file: UploadFile, vision: VisionBackend = Depends(get_vision)) -> dict:
     image = await file.read()
     return identify_wild_plant(image, vision).to_dict()
+
+
+class WateringScheduleRequest(BaseModel):
+    species: str
+    precip_7d: float = 0
+    history: list[dict] = []
+
+
+@app.post("/plantcare/watering_schedule")
+async def plantcare_watering_schedule(body: WateringScheduleRequest) -> dict:
+    return watering_schedule(body.species, {"precip_7d": body.precip_7d}, body.history)
