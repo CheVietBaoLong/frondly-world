@@ -31,9 +31,11 @@ export default function Care() {
   const precip7d = useRecentRainfall();
   const schedules = useWateringSchedules(plants, precip7d);
 
+  // Plants with no resolved schedule yet sort last.
+  const NO_SCHEDULE = "9999-99-99";
   const sorted = [...plants].sort((a, b) => {
-    const aDate = schedules.get(a.id)?.next_water_date ?? "9999-99-99";
-    const bDate = schedules.get(b.id)?.next_water_date ?? "9999-99-99";
+    const aDate = schedules.get(a.id)?.next_water_date ?? NO_SCHEDULE;
+    const bDate = schedules.get(b.id)?.next_water_date ?? NO_SCHEDULE;
     return aDate.localeCompare(bDate);
   });
 
