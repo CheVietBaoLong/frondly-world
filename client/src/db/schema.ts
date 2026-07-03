@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from "@nozbe/watermelondb";
 
 export const schema = appSchema({
-  version: 1,
+  version: 2,
   tables: [
     tableSchema({
       name: "plants",
@@ -24,6 +24,7 @@ export const schema = appSchema({
         { name: "severity", type: "string", isOptional: true },
         { name: "health_score", type: "number", isOptional: true },
         { name: "care_steps", type: "string", isOptional: true }, // JSON string
+        { name: "confidence", type: "number", isOptional: true }, // 0–1, from the agent
         { name: "photo", type: "string", isOptional: true }, // file URI
       ],
     }),

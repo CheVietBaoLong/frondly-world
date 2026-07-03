@@ -18,6 +18,7 @@ export type PlantDetailVM = {
   vine: VinePoint[];
   latestNote: string;
   careSteps: string[];
+  confidence: number | null;
 };
 
 const fmtDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -38,6 +39,7 @@ function buildVM(plant: Plant, obs: Observation[]): PlantDetailVM {
     })),
     latestNote: latest?.note ?? "",
     careSteps: latest?.careSteps ?? [],
+    confidence: latest?.confidence ?? null,
   };
 }
 

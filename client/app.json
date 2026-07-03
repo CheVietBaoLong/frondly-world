@@ -53,7 +53,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Frondly uses the camera to identify wild plants you point it at."
+          "cameraPermission": "Frondly uses the camera to identify wild plants and diagnose your plants' health."
         }
       ],
       [
