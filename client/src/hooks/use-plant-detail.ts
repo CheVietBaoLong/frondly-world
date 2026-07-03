@@ -12,6 +12,8 @@ export type VinePoint = { score: number; label: string };
 export type PlantDetailVM = {
   name: string;
   species: string;
+  lastWatered: Date | null;
+  dateAdded: Date;
   heroPhoto: string | null;
   score: number | null;
   chip: { label: string; bg: ColorToken; fg: ColorToken };
@@ -30,6 +32,8 @@ function buildVM(plant: Plant, obs: Observation[]): PlantDetailVM {
   return {
     name: plant.name,
     species: plant.species,
+    lastWatered: plant.lastWatered,
+    dateAdded: plant.dateAdded,
     heroPhoto: plant.heroPhoto,
     score,
     chip: chipForScore(score),
@@ -53,6 +57,8 @@ export function usePlantDetail(id: string): PlantDetailVM | null {
 
   useEffect(() => {
     let cancelled = false;
+    let latestObs: Observation[] = [];
+    let plantSub: { unsubscribe: () => void } | null = null;
     let obsSub: { unsubscribe: () => void } | null = null;
 
     database
@@ -60,10 +66,21 @@ export function usePlantDetail(id: string): PlantDetailVM | null {
       .find(id)
       .then((plant) => {
         if (cancelled) return;
+
+        // Plant.observe() re-emits whenever a field on the record changes
+        // (e.g. lastWatered via a mark-watered write) — without this,
+        // marking a plant watered wouldn't re-render this screen, since
+        // the observations-only subscription below doesn't fire on plant
+        // field changes.
+        plantSub = plant.observe().subscribe((p) => {
+          if (!cancelled) setVm(buildVM(p, latestObs));
+        });
+
         obsSub = plant.observations
           .extend(Q.sortBy("date", Q.asc))
           .observe()
           .subscribe((obs) => {
+            latestObs = obs;
             if (!cancelled) setVm(buildVM(plant, obs));
           });
       })
@@ -76,6 +93,7 @@ export function usePlantDetail(id: string): PlantDetailVM | null {
 
     return () => {
       cancelled = true;
+      plantSub?.unsubscribe();
       obsSub?.unsubscribe();
     };
   }, [id]);
