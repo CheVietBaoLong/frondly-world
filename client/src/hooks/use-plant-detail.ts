@@ -58,6 +58,7 @@ export function usePlantDetail(id: string): PlantDetailVM | null {
   useEffect(() => {
     let cancelled = false;
     let latestObs: Observation[] = [];
+    let obsLoaded = false;
     let plantSub: { unsubscribe: () => void } | null = null;
     let obsSub: { unsubscribe: () => void } | null = null;
 
@@ -71,9 +72,13 @@ export function usePlantDetail(id: string): PlantDetailVM | null {
         // (e.g. lastWatered via a mark-watered write) — without this,
         // marking a plant watered wouldn't re-render this screen, since
         // the observations-only subscription below doesn't fire on plant
-        // field changes.
+        // field changes. Plant.observe() is a BehaviorSubject and fires
+        // synchronously on subscribe, before the async observations query
+        // below has ever resolved — obsLoaded gates that first, premature
+        // emission so the screen never renders a real layout with an
+        // artificially empty journal.
         plantSub = plant.observe().subscribe((p) => {
-          if (!cancelled) setVm(buildVM(p, latestObs));
+          if (!cancelled && obsLoaded) setVm(buildVM(p, latestObs));
         });
 
         obsSub = plant.observations
@@ -81,6 +86,7 @@ export function usePlantDetail(id: string): PlantDetailVM | null {
           .observe()
           .subscribe((obs) => {
             latestObs = obs;
+            obsLoaded = true;
             if (!cancelled) setVm(buildVM(plant, obs));
           });
       })
