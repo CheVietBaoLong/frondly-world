@@ -100,3 +100,42 @@ function daysBetween(fromIso: string, toIso: string): number {
   const to = new Date(`${toIso}T00:00:00Z`).getTime();
   return Math.round((to - from) / 86_400_000);
 }
+
+// dev-note: base URL hardcoded for local dev, same story as forage/api.ts and lib/api.ts.
+const API_BASE = "http://localhost:8000";
+const FETCH_TIMEOUT_MS = 5_000;
+
+export async function fetchWateringSchedule(
+  species: string,
+  precip7d: number,
+  history: ScheduleHistoryEntry[]
+): Promise<ScheduleResult> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${API_BASE}/plantcare/watering_schedule`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ species, precip_7d: precip7d, history }),
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`watering_schedule failed (${res.status})`);
+    return (await res.json()) as ScheduleResult;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// Server is the source of truth; nextWaterDate (the local TS port above) is
+// the offline/unreachable fallback so the UI never blocks or shows nothing.
+export async function getWateringSchedule(
+  species: string,
+  precip7d: number,
+  history: ScheduleHistoryEntry[]
+): Promise<ScheduleResult> {
+  try {
+    return await fetchWateringSchedule(species, precip7d, history);
+  } catch {
+    return nextWaterDate(species, precip7d, history);
+  }
+}

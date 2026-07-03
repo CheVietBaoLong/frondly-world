@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-import { historyFromWatered, nextWaterDate, scheduleStatus } from "../care";
+import { getWateringSchedule, historyFromWatered, nextWaterDate, scheduleStatus } from "../care";
 
 const fixturePath = path.join(__dirname, "../../../../fixtures/watering-schedule.golden.json");
 type GoldenCase = {
@@ -65,5 +65,50 @@ describe("scheduleStatus", () => {
       bg: "stoneBg",
       fg: "secondary",
     });
+  });
+});
+
+describe("getWateringSchedule", () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it("returns the server result when the request succeeds", async () => {
+    const serverResult = {
+      next_water_date: "2026-07-05",
+      interval_days: 3,
+      reason: "server says so",
+    };
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => serverResult,
+    }) as unknown as typeof fetch;
+
+    const result = await getWateringSchedule("monstera", 0, [{ date: "2026-07-02" }]);
+    expect(result).toEqual(serverResult);
+  });
+
+  it("falls back to the local calc when the network call rejects", async () => {
+    global.fetch = jest
+      .fn()
+      .mockRejectedValue(new Error("network down")) as unknown as typeof fetch;
+
+    const history = [{ date: "2026-06-20" }];
+    const result = await getWateringSchedule("monstera", 0, history);
+    expect(result).toEqual(nextWaterDate("monstera", 0, history));
+  });
+
+  it("falls back to the local calc on a non-2xx response", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => ({}),
+    }) as unknown as typeof fetch;
+
+    const history = [{ date: "2026-06-25" }];
+    const result = await getWateringSchedule("pothos", 0, history);
+    expect(result).toEqual(nextWaterDate("pothos", 0, history));
   });
 });
