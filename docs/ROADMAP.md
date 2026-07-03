@@ -1,6 +1,6 @@
 # Frondly — Project Roadmap & Status
 
-**Updated:** 2026-07-02 (after PR #17, Diagnose flow)
+**Updated:** 2026-07-03 (after PR #18, Watering schedule — open, pending merge)
 
 One-page tracker: what's built, what's left for the app to fully work, and what's
 parked. Details live in the per-feature specs (`docs/*-spec.md`) and the
@@ -15,8 +15,8 @@ migration plan (`docs/react-native-migration-design.md`).
 │  ├─ (tabs)/index      Garden Home (reactive cards + live weather card)      │
 │  ├─ (tabs)/add        Add Plant (camera / library / manual)                 │
 │  ├─ (tabs)/forage     Forage capture → forage/result, finds, species        │
-│  ├─ (tabs)/care       ── ComingSoon placeholder ──                          │
-│  ├─ plant/[id]        Plant Detail + GrowthVine + DIAGNOSIS card            │
+│  ├─ (tabs)/care       Watering list (soonest/overdue first, mark-watered)   │
+│  ├─ plant/[id]        Plant Detail + GrowthVine + DIAGNOSIS + watering card │
 │  └─ plant/diagnose    photo → streamed agent reply → saved diagnosis        │
 │         │                                      │                            │
 │         │ observe() (reactive)                 │ lib/api.ts                 │
@@ -33,8 +33,10 @@ migration plan (`docs/react-native-migration-design.md`).
                         └──────────────┘  │ │   plantcare agent (Gemini 2.5)│
                                           │ │   tools: weather, decline,    │
                                           │ │   schedule, record_diagnosis  │
-                                          │ └─ POST /forage/identify        │
-                                          │    (GeminiVision + PNW dataset) │
+                                          │ ├─ POST /forage/identify        │
+                                          │ │  (GeminiVision + PNW dataset) │
+                                          │ └─ POST /plantcare/            │
+                                          │    watering_schedule (PR #18)   │
                                           │ Stateless — persists nothing;   │
                                           │ all user data stays on-device.  │
                                           └─────────────────────────────────┘
@@ -53,31 +55,38 @@ migration plan (`docs/react-native-migration-design.md`).
 | iOS dev build (simdjson/CocoaPods autolinking fix) | PR #16 |
 | Live weather card (Open-Meteo + expo-location, 30-min cache) | PR #16 |
 | **Diagnose flow** — photo → Gemini agent → streamed reply → Observation auto-saved (health score + confidence), follow-ups on same session; schema v2 migration | PR #17 |
-| Backend: plantcare ADK agent + tools, forage identify, offline test suites (client jest 36, server 21) | — |
+| **Watering schedule** — Care tab list (soonest/overdue first) + live Plant Detail card; `POST /plantcare/watering_schedule` (source of truth) + TS offline fallback kept in sync via a shared golden fixture; mark-watered action finally writes `Plant.lastWatered` | PR #18 (open) |
+| Backend: plantcare ADK agent + tools, forage identify, offline test suites (client jest 50, server 15) | — |
 
 ## Left for the app to fully work 🔨
 
 Rough priority order:
 
-1. **Care tab** — still a `ComingSoon` placeholder. Natural home for watering
-   schedule (the agent's `watering_schedule` tool exists server-side; the
-   "Water Thursday" card on Plant Detail is still static copy).
-2. **Forage Finds persistence** — finds screen reads mock data
+1. **Forage Finds persistence** — finds screen reads mock data
    (`forage/data.ts`); identified plants aren't saved anywhere.
-3. **Add Plant → Confirm & Save with AI prefill** — mockup shows AI-suggested
+2. **Add Plant → Confirm & Save with AI prefill** — mockup shows AI-suggested
    name/room/light; current flow saves a bare Plant + photo.
-4. **Room/Light persistence** — captured in Add Plant UI state, no columns on
+3. **Room/Light persistence** — captured in Add Plant UI state, no columns on
    the Plant model yet (needs schema v3).
-5. **Durable photo storage** — camera-cache URIs stored as-is for `heroPhoto`
+4. **Durable photo storage** — camera-cache URIs stored as-is for `heroPhoto`
    and diagnosis photos; migration plan calls for copying into app storage via
    `expo-file-system` (OS can evict cache).
-6. **Base URL config** — `localhost:8000` hardcoded in `lib/api.ts` and
-   `forage/api.ts`; physical devices need a LAN IP (env/EAS config).
+5. **Base URL config** — `localhost:8000` hardcoded in `lib/api.ts`,
+   `forage/api.ts`, and now `lib/care.ts`; physical devices need a LAN IP
+   (env/EAS config).
 
 Diagnose follow-ups (deliberate, listed in PR #17): severity not shown on the
 result card; "Saved to journal ✓" renders before the async write confirms;
 abnormal stream finishes (safety block / MAX_TOKENS) end as silent "done";
 mock-XHR test for the SSE consume loop.
+
+Watering schedule follow-ups (deliberate, listed in PR #18): endpoint doesn't
+validate malformed `history[].date` (500 not 422 — no security risk, pure
+computation); `useWateringSchedules` issues one request per plant rather than
+a true batch endpoint; `scheduleStatus`'s "today" comparison is UTC-based;
+golden fixture covers 5 of 8 species and no decimal rainfall case; manual
+simulator verification of both screens (live sort/live mark-watered update)
+still pending as of PR open.
 
 ## Open questions on hold ❓
 
