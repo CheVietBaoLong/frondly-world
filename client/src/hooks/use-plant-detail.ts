@@ -48,10 +48,9 @@ function buildVM(plant: Plant, obs: Observation[]): PlantDetailVM {
 }
 
 // Reactive plant-detail view-model. Ports PlantDetailView: fetches the plant,
-// then subscribes to its observations (oldest→newest) and rebuilds the VM on
-// every journal change. `vm` is null while loading or if the id doesn't exist.
-// dev-note: plant name/species/heroPhoto are read once at find(); they don't
-// change in slice 1 (no edit flow). The reactive part is the observation journal.
+// then subscribes to both the Plant record itself (name/species/lastWatered/...)
+// and its observations (oldest→newest), rebuilding the VM on either source of
+// change. `vm` is null while loading or if the id doesn't exist.
 export function usePlantDetail(id: string): PlantDetailVM | null {
   const [vm, setVm] = useState<PlantDetailVM | null>(null);
 
