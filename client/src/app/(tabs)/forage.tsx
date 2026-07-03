@@ -1,5 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
 import { router, useIsFocused } from "expo-router";
 import { useRef } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -29,6 +30,16 @@ export default function ForageCapture() {
       // Ignore capture failures (e.g. camera not ready) and keep the user on the capture screen.
       return;
     }
+  }
+
+  // Identify an existing photo from the library — the Simulator has no camera,
+  // so this is also the only way to test Forage there.
+  async function pickFromLibrary() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) return;
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.5 });
+    if (res.canceled || !res.assets?.[0]?.uri) return;
+    router.push({ pathname: "/forage/result", params: { photo: res.assets[0].uri } });
   }
 
   return (
@@ -70,7 +81,7 @@ export default function ForageCapture() {
           <View className="h-[58px] w-[58px] rounded-full border-2 border-citron" />
         </Pressable>
         <Pressable
-          onPress={() => router.push("/forage/finds")}
+          onPress={pickFromLibrary}
           className="absolute right-8 h-12 w-12 items-center justify-center rounded-2xl border border-border bg-surface"
         >
           <Ionicons name="images-outline" size={20} color={tokens.forest} />
