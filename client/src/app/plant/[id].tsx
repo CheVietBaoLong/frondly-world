@@ -88,8 +88,13 @@ export default function PlantDetail() {
               <Text className="flex-1 font-body text-xs text-secondary">{step}</Text>
             </View>
           ))}
-          {/* dev-note: static confidence — the agent doesn't emit one yet (api.ts deferred). */}
-          <Chip text="Confidence 94%" bg="mintBg" fg="leafText" />
+          {vm.confidence != null ? (
+            <Chip
+              text={`Confidence ${Math.round(vm.confidence * 100)}%`}
+              bg="mintBg"
+              fg="leafText"
+            />
+          ) : null}
         </View>
       ) : null}
 
@@ -101,10 +106,9 @@ export default function PlantDetail() {
           title="Water Thursday"
           detail="Heatwave coming Sat — I moved watering up 2 days."
         />
-        {/* dev-note: diagnose-with-photo flow ships with the capture feature; CTA is inert for now. */}
         <Pressable
-          disabled
-          className="flex-row items-center justify-center gap-2 rounded-[14px] bg-citron py-3.5 opacity-60"
+          onPress={() => router.push({ pathname: "/plant/diagnose", params: { id } })}
+          className="flex-row items-center justify-center gap-2 rounded-[14px] bg-citron py-3.5"
         >
           <Ionicons name="sparkles" size={16} color={tokens.forest} />
           <Text className="font-body text-[15px] font-semibold text-forest">
