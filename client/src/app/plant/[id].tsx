@@ -44,7 +44,11 @@ export default function PlantDetail() {
   }
 
   const schedule = schedules.get(id) ?? null;
-  const status = scheduleStatus(schedule?.next_water_date ?? null);
+  const status = scheduleStatus(
+    schedule?.next_water_date ?? null,
+    undefined,
+    vm.lastWatered == null
+  );
 
   return (
     <ScrollView
@@ -64,14 +68,20 @@ export default function PlantDetail() {
         >
           <Ionicons name="chevron-back" size={16} color={tokens.forest} />
         </Pressable>
-        <View className="flex-1">
-          <Text className="font-display text-[22px] text-forest" numberOfLines={1}>
-            {vm.name}
-          </Text>
+        <Pressable
+          className="flex-1"
+          onPress={() => router.push({ pathname: "/plant/edit", params: { id } })}
+        >
+          <View className="flex-row items-center gap-1.5">
+            <Text className="font-display text-[22px] text-forest" numberOfLines={1}>
+              {vm.name}
+            </Text>
+            <Ionicons name="pencil" size={20} color={tokens.forest} />
+          </View>
           <Text className="font-body text-xs text-secondary" numberOfLines={1}>
             {vm.species}
           </Text>
-        </View>
+        </Pressable>
         <Chip text={vm.chip.label} bg={vm.chip.bg} fg={vm.chip.fg} />
       </View>
 
@@ -100,32 +110,39 @@ export default function PlantDetail() {
         <GrowthVine points={vm.vine} />
       </View>
 
-      {/* diagnosis */}
-      {vm.latestNote ? (
-        <View className="gap-2 rounded-[18px] border border-border bg-surface p-3.5">
-          <SectionLabel text="DIAGNOSIS" />
-          <Text className="font-body text-sm text-forest">{vm.latestNote}</Text>
-          {vm.careSteps.map((step) => (
-            <View key={step} className="flex-row items-center gap-1.5">
-              <Ionicons name="checkmark-circle" size={13} color={tokens.secondary} />
-              <Text className="flex-1 font-body text-xs text-secondary">{step}</Text>
-            </View>
+      {/* notes — compact cards, tap to read the full entry */}
+      {vm.notes.length > 0 ? (
+        <View className="gap-2.5">
+          <SectionLabel text="NOTES" />
+          {vm.notes.map((n) => (
+            <Pressable
+              key={n.id}
+              onPress={() =>
+                router.push({ pathname: "/plant/note/[noteId]", params: { noteId: n.id } })
+              }
+              className="gap-1 rounded-[16px] border border-border bg-surface p-3.5"
+            >
+              <View className="flex-row items-center justify-between">
+                <Text className="font-body text-[11px] uppercase text-secondary">{n.date}</Text>
+                {n.healthScore != null ? (
+                  <Chip text={`Health ${n.healthScore}`} bg="mintBg" fg="leafText" />
+                ) : null}
+              </View>
+              <Text className="font-display text-[15px] text-forest" numberOfLines={1}>
+                {n.title}
+              </Text>
+            </Pressable>
           ))}
-          {vm.confidence != null ? (
-            <Chip
-              text={`Confidence ${Math.round(vm.confidence * 100)}%`}
-              bg="mintBg"
-              fg="leafText"
-            />
-          ) : null}
         </View>
       ) : null}
 
       {/* next care + diagnose CTA */}
       <View className="gap-3">
+        {/* dev-note: static "in last 7d" copy, not a real countdown from
+            lastWatered — add a days-since-watered readout once that's wanted. */}
         <AssistantCard
           icon={<Ionicons name="water" size={18} color={tokens.forest} />}
-          title={status.label}
+          title={vm.lastWatered ? "Watered in last 7d" : status.label}
           detail={schedule?.reason ?? "Add a watering to start the schedule."}
         />
         <Pressable

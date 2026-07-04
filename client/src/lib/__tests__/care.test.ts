@@ -66,6 +66,14 @@ describe("scheduleStatus", () => {
       fg: "secondary",
     });
   });
+
+  it("softens a never-watered plant to 'Water when dry' regardless of the estimated date", () => {
+    expect(scheduleStatus("2026-07-06", "2026-07-02", true)).toEqual({
+      label: "Water when dry",
+      bg: "mintBg",
+      fg: "leafText",
+    });
+  });
 });
 
 describe("getWateringSchedule", () => {

@@ -75,10 +75,15 @@ export function historyFromWatered(
 export type ScheduleStatus = { label: string; bg: ColorToken; fg: ColorToken };
 
 // Ports db/health.ts's chipForScore bucket style to watering status.
+// `neverWatered` plants have no real anchor — their next-water date is only an
+// estimate from dateAdded, so we show a soft "Water when dry" instead of a
+// precise countdown that reads like a dummy default.
 export function scheduleStatus(
   nextWaterDateIso: string | null,
-  todayIso: string = new Date().toISOString().slice(0, 10)
+  todayIso: string = new Date().toISOString().slice(0, 10),
+  neverWatered = false
 ): ScheduleStatus {
+  if (neverWatered) return { label: "Water when dry", bg: "mintBg", fg: "leafText" };
   if (nextWaterDateIso == null) return { label: "Unknown", bg: "stoneBg", fg: "secondary" };
   if (nextWaterDateIso < todayIso) {
     return {
