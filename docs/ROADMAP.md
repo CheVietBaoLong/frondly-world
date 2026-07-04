@@ -1,8 +1,8 @@
 # Frondly — Project Roadmap & Status
 
-**Updated:** 2026-07-04 (after PRs #19 UI polish, #20 Forage Finds persistence,
-#21 diagnose-note merged; three local branches open: `frondly/quick-fixes` +
-`frondly/plant-detail` (stacked) and `frondly/plant-identity`, all pending PR)
+**Updated:** 2026-07-04 (PRs #22 quick-fixes, #23 plant-detail, #24
+plant-identity all merged; diagnose message thread built on
+`frondly/diagnose-thread`, pending PR)
 
 One-page tracker: what's built, what's left for the app to fully work, and what's
 parked. Details live in the per-feature specs (`docs/*-spec.md`) and the
@@ -57,15 +57,16 @@ migration plan (`docs/react-native-migration-design.md`).
 | iOS dev build (simdjson/CocoaPods autolinking fix) | PR #16 |
 | Live weather card (Open-Meteo + expo-location, 30-min cache) | PR #16 |
 | **Diagnose flow** — photo → Gemini agent → streamed reply → Observation auto-saved (health score + confidence), follow-ups on same session; schema v2 migration | PR #17 |
-| **Watering schedule** — Care tab list (soonest/overdue first) + live Plant Detail card; `POST /plantcare/watering_schedule` (source of truth) + TS offline fallback kept in sync via a shared golden fixture; mark-watered action finally writes `Plant.lastWatered` | PR #18 (open) |
+| **Watering schedule** — Care tab list (soonest/overdue first) + live Plant Detail card; `POST /plantcare/watering_schedule` (source of truth) + TS offline fallback kept in sync via a shared golden fixture; mark-watered action finally writes `Plant.lastWatered` | PR #18 |
 | **Forage Finds persistence** — identified plants saved to a `finds` table + reactive finds list (was mock data) | PR #20 |
 | **Diagnose → journal note** — save a chat reply as a plain Observation | PR #21 |
 | UI polish (pixel-art placeholder, Leafy Pals header) | PR #19 |
-| **Add-plant detail prompt** — "Choose from Photos" now routes into the manual form (name/species) instead of saving a bare "New plant" and bouncing home; manual form gained an optional inline photo picker | `frondly/quick-fixes` (local) |
-| **Live garden score** — Home cards now re-render on observation inserts (observe the observations collection), so a fresh diagnosis updates the card, not just Plant Detail | `frondly/plant-detail` (local) |
-| **Editable plant + journal note cards** — pencil → edit name/species; journal lists compact note cards opening a full-screen note view; never-watered plants show "Water when dry" not a dummy "Water in 7d" | `frondly/plant-detail` (local) |
-| **Agent-assisted plant identity** — photo → Gemini suggests name+species, prefills the editable fields on Edit + Add-manual; new `POST /plantcare/identify` (reuses the vision layer, no dataset gate); a photo picked on Edit also becomes the hero | `frondly/plant-identity` (local) |
-| Backend: plantcare ADK agent + tools, forage identify, offline test suites (client jest 54, server 15) | — |
+| **Add-plant detail prompt** — "Choose from Photos" now routes into the manual form (name/species) instead of saving a bare "New plant" and bouncing home; manual form gained an optional inline photo picker | PR #22 |
+| **Live garden score** — Home cards now re-render on observation inserts (observe the observations collection), so a fresh diagnosis updates the card, not just Plant Detail | PR #23 |
+| **Editable plant + journal note cards** — pencil → edit name/species; journal lists compact note cards opening a full-screen note view; never-watered plants show "Water when dry" not a dummy "Water in 7d" | PR #23 |
+| **Agent-assisted plant identity** — photo → Gemini suggests name+species, prefills the editable fields on Edit + Add-manual; new `POST /plantcare/identify` (reuses the vision layer, no dataset gate); a photo picked on Edit also becomes the hero | PR #24 |
+| **Diagnose message thread** — follow-ups render as a scrollable user/assistant thread; each assistant reply carries its own diagnosis card, save-note button, and inline retry-on-error (concurrent sends guarded) | `frondly/diagnose-thread` (local) |
+| Backend: plantcare ADK agent + tools, forage identify, offline test suites (client jest 62, server 15) | — |
 
 ## Left for the app to fully work 🔨
 
@@ -80,14 +81,22 @@ Rough priority order:
    `forage/api.ts`, and `lib/care.ts`; physical devices need a LAN IP
    (env/EAS config).
 
-## Next milestone — diagnose message thread 🎯
+## Next milestone — Room/Light persistence 🎯
 
-Agent-assisted plant identity (item 1) is DONE — see the Implemented table
-(`frondly/plant-identity`, spec `docs/plant-identity-spec.md`). Remaining:
+Diagnose message thread is DONE — see the Implemented table
+(`frondly/diagnose-thread`, spec
+`docs/superpowers/specs/2026-07-04-diagnose-message-thread-design.md`).
+Remaining (top of "Left for the app to fully work," above):
 
-1. **Diagnose message thread** — the diagnose screen is a single reply block, so
-   a follow-up shows only the agent's answer, not the user's question
-   (`plant/diagnose.tsx:35`, `:128`). Convert to a rendered user/agent thread.
+1. **Room/Light persistence** — captured in Add Plant UI state
+   (`add/manual.tsx`), no columns on the Plant model yet (needs schema v3).
+
+Diagnose message thread follow-ups (deliberate): thread state is ephemeral
+(`useState` only, not persisted) — leaving the screen still ends the
+session, the saved Observations remain the durable record; an empty
+follow-up that errors before any text streams can still trigger "Save this
+note," saving a blank journal entry (low-impact edge case, easy one-line
+guard if it matters).
 
 Diagnose follow-ups (deliberate, listed in PR #17): severity not shown on the
 result card; "Saved to journal ✓" renders before the async write confirms;
