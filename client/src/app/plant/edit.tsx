@@ -4,19 +4,19 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { IdentifyButton } from "@/components/identify-button";
 import { tokens } from "@/constants/tokens";
 import { database } from "@/db";
 import { Plant } from "@/db/models/Plant";
 
 // Edit a plant's name/species. Reached from the pencil on Plant Detail — fixes
 // plants stuck at "New plant" / "Unknown species" after a photo/quick add.
-// dev-note: species is free-text for now; an agent-assisted "identify this
-// plant" prefill (like Forage) is the deferred next-milestone item.
 export default function EditPlant() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [name, setName] = useState("");
   const [species, setSpecies] = useState("");
+  const [heroPhoto, setHeroPhoto] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -29,6 +29,7 @@ export default function EditPlant() {
         if (cancelled) return;
         setName(plant.name);
         setSpecies(plant.species);
+        setHeroPhoto(plant.heroPhoto);
         setLoaded(true);
       })
       .catch((e) => console.error("load plant failed:", e));
@@ -46,6 +47,7 @@ export default function EditPlant() {
         await plant.update((p) => {
           p.name = name.trim();
           p.species = species.trim() || "Unknown species";
+          p.heroPhoto = heroPhoto;
         });
       });
       router.back();
@@ -78,6 +80,15 @@ export default function EditPlant() {
           <Text className="font-body text-xs text-secondary">Update its name and species.</Text>
         </View>
       </View>
+
+      <IdentifyButton
+        photoUri={heroPhoto}
+        onPhotoPicked={setHeroPhoto}
+        onIdentified={({ name: n, scientificName }) => {
+          setName(n);
+          setSpecies(scientificName);
+        }}
+      />
 
       <View className="gap-4">
         <View>
