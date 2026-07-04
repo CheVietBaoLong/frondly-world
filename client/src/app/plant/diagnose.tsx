@@ -328,7 +328,7 @@ export default function Diagnose() {
                 : undefined
             }
             onSaveNote={
-              turn.role === "assistant" && turn.status === "done" && !turn.noteSaved
+              turn.role === "assistant" && turn.status !== "streaming" && !turn.noteSaved
                 ? () => saveTurnNote(turn.id, turn.text)
                 : undefined
             }
