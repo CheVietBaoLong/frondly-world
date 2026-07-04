@@ -141,6 +141,11 @@ export default function Diagnose() {
 
   // Follow-ups no longer touch `phase`/`reply`/`diagnosis` — they update
   // one Turn by id, found via `assistantId`'s closure below.
+  // dev-note: if a turn's diagnosis fires and then the same stream errors,
+  // a successful retry re-fires onDiagnosis and double-saves the
+  // Observation (retry resends the full turn, not just the missing tail).
+  // Bounded to that one interleaving; fix by tracking "already saved" per
+  // turn if it turns out to matter in practice.
   function runFollowUpStream(assistantId: string, parts: MessagePart[]) {
     xhrRef.current = sendMessage(sessionRef.current as string, parts, {
       onText: (text) => setTurns((t) => setTurnText(t, assistantId, text)),
@@ -327,6 +332,11 @@ export default function Diagnose() {
                 ? () => retryTurn(turn.id, turns[i - 1]?.text ?? "")
                 : undefined
             }
+            // dev-note: covers "error" so a diagnosed-then-errored turn keeps
+            // its Save button, but a turn that errors before any text streams
+            // (empty turn.text, no diagnosis) can still show it, saving a
+            // blank Observation. Low-impact — saveNote/saveObservation don't
+            // validate elsewhere either — gate on turn.text/diagnosis if it matters.
             onSaveNote={
               turn.role === "assistant" && turn.status !== "streaming" && !turn.noteSaved
                 ? () => saveTurnNote(turn.id, turn.text)
