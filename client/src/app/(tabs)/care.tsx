@@ -14,6 +14,9 @@ import { useRecentRainfall } from "@/hooks/use-recent-rainfall";
 import { useWateringSchedules } from "@/hooks/use-watering-schedules";
 import { scheduleStatus, type ScheduleResult } from "@/lib/care";
 
+// Same pixel-art fallback the Home grid and Plant Detail use for photo-less plants.
+const PLANT_PLACEHOLDER = require("@/assets/images/plant-placeholder.jpeg");
+
 async function markWatered(plantId: string) {
   await database.write(async () => {
     const plant = await database.get<Plant>("plants").find(plantId);
@@ -77,9 +80,11 @@ function CareRow({ plant, schedule }: { plant: PlantVM; schedule: ScheduleResult
         onPress={() => router.push({ pathname: "/plant/[id]", params: { id: plant.id } })}
       >
         <View className="h-12 w-12 overflow-hidden rounded-[12px] bg-sage">
-          {plant.heroPhoto ? (
-            <Image source={{ uri: plant.heroPhoto }} style={{ flex: 1 }} contentFit="cover" />
-          ) : null}
+          <Image
+            source={plant.heroPhoto ? { uri: plant.heroPhoto } : PLANT_PLACEHOLDER}
+            style={{ flex: 1 }}
+            contentFit="cover"
+          />
         </View>
         <View className="flex-1 gap-1">
           <Text className="font-display text-base text-forest" numberOfLines={1}>

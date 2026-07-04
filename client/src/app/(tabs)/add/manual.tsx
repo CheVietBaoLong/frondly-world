@@ -1,5 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
@@ -19,9 +20,24 @@ export default function AddManual() {
   const insets = useSafeAreaInsets();
   const { photo } = useLocalSearchParams<{ photo?: string }>();
   const [name, setName] = useState("");
+  const [photoUri, setPhotoUri] = useState<string | null>(photo ?? null);
   const [room, setRoom] = useState<RoomOption>(ROOMS[0]);
   const [light, setLight] = useState<LightOption>(LIGHTS[1]);
   const [saving, setSaving] = useState(false);
+
+  // Optional photo — pre-filled when arriving from the camera / "Choose from
+  // Photos" flows, or attached here via the picker.
+  async function pickPhoto() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.6,
+      allowsEditing: true,
+    });
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+    setPhotoUri(result.assets[0].uri);
+  }
 
   // dev-note: room/light aren't on the Plant model/schema yet, so they're
   // captured in the UI but not persisted. Add columns + a migration when
@@ -37,7 +53,7 @@ export default function AddManual() {
           plant.dateAdded = new Date();
           plant.latitude = null;
           plant.longitude = null;
-          plant.heroPhoto = photo ?? null;
+          plant.heroPhoto = photoUri;
         });
       });
       router.replace("/");
@@ -73,15 +89,30 @@ export default function AddManual() {
         </View>
       </View>
 
-      {photo ? (
-        <View className="h-[190px] items-center justify-center overflow-hidden rounded-[20px] bg-stoneBg">
+      {photoUri ? (
+        <Pressable
+          onPress={pickPhoto}
+          className="h-[190px] items-center justify-center overflow-hidden rounded-[20px] bg-stoneBg"
+        >
           <Image
-            source={{ uri: photo }}
+            source={{ uri: photoUri }}
             style={{ width: "100%", height: "100%" }}
             contentFit="cover"
           />
-        </View>
-      ) : null}
+          <View className="absolute bottom-2 right-2 flex-row items-center gap-1 rounded-full bg-forest/80 px-3 py-1.5">
+            <Ionicons name="camera" size={13} color={tokens.white} />
+            <Text className="font-body text-xs text-white">Change</Text>
+          </View>
+        </Pressable>
+      ) : (
+        <Pressable
+          onPress={pickPhoto}
+          className="h-[130px] flex-row items-center justify-center gap-2 rounded-[20px] border border-dashed border-border bg-surface"
+        >
+          <Ionicons name="image-outline" size={20} color={tokens.secondary} />
+          <Text className="font-body text-[13px] text-secondary">Add a photo (optional)</Text>
+        </Pressable>
+      )}
 
       <View className="gap-4">
         <View>

@@ -80,12 +80,20 @@ export default function ForageCapture() {
         >
           <View className="h-[58px] w-[58px] rounded-full border-2 border-citron" />
         </Pressable>
-        <Pressable
-          onPress={pickFromLibrary}
-          className="absolute right-8 h-12 w-12 items-center justify-center rounded-2xl border border-border bg-surface"
+        {/* Anchored to the row's own content box (paddingTop/paddingBottom), not
+            the outer View's padding box — otherwise bottom-0/top-0 stretches to
+            include the asymmetric bottom padding and pulls this off the shutter's centerline. */}
+        <View
+          className="absolute right-8 justify-center"
+          style={{ top: 18, bottom: insets.bottom + 96 }}
         >
-          <Ionicons name="images-outline" size={20} color={tokens.forest} />
-        </Pressable>
+          <Pressable
+            onPress={pickFromLibrary}
+            className="h-12 w-12 items-center justify-center rounded-2xl border border-border bg-surface"
+          >
+            <Ionicons name="images-outline" size={20} color={tokens.forest} />
+          </Pressable>
+        </View>
       </View>
 
       <Text className="absolute bottom-[76px] w-full text-center font-body text-[11px] text-secondary">

@@ -4,6 +4,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -213,6 +214,15 @@ export default function Diagnose() {
                 <Text className="font-body text-[15px] font-semibold text-white">Diagnose</Text>
               </Pressable>
             ) : null}
+          </View>
+        ) : null}
+
+        {/* waiting on the first token — show a spinner so the screen never
+            looks frozen while the agent thinks */}
+        {phase === "sending" && !reply ? (
+          <View className="flex-row items-center gap-2.5 rounded-[18px] border border-border bg-surface p-3.5">
+            <ActivityIndicator color={tokens.forest} />
+            <Text className="font-body text-sm text-secondary">Looking at your plant…</Text>
           </View>
         ) : null}
 
