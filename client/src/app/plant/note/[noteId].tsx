@@ -52,19 +52,19 @@ export default function NoteDetail() {
         gap: 16,
       }}
     >
-      <View className="flex-row items-center gap-3">
-        <Pressable
-          onPress={() => router.back()}
-          className="h-9 w-9 items-center justify-center rounded-full border border-border bg-surface"
-        >
-          <Ionicons name="chevron-back" size={16} color={tokens.forest} />
-        </Pressable>
+      <View className="flex-row items-start gap-3">
         <View className="flex-1">
           <Text className="font-display text-[22px] text-forest" numberOfLines={2}>
             {titleOf(obs.note)}
           </Text>
           <Text className="font-body text-xs text-secondary">{fmtDate(obs.date)}</Text>
         </View>
+        <Pressable
+          onPress={() => router.back()}
+          className="h-9 w-9 items-center justify-center rounded-full border border-border bg-surface"
+        >
+          <Ionicons name="close" size={18} color={tokens.forest} />
+        </Pressable>
       </View>
 
       {obs.photo ? (

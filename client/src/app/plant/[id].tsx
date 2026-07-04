@@ -76,7 +76,7 @@ export default function PlantDetail() {
             <Text className="font-display text-[22px] text-forest" numberOfLines={1}>
               {vm.name}
             </Text>
-            <Ionicons name="pencil" size={13} color={tokens.secondary} />
+            <Ionicons name="pencil" size={20} color={tokens.forest} />
           </View>
           <Text className="font-body text-xs text-secondary" numberOfLines={1}>
             {vm.species}
@@ -138,9 +138,11 @@ export default function PlantDetail() {
 
       {/* next care + diagnose CTA */}
       <View className="gap-3">
+        {/* dev-note: static "in last 7d" copy, not a real countdown from
+            lastWatered — add a days-since-watered readout once that's wanted. */}
         <AssistantCard
           icon={<Ionicons name="water" size={18} color={tokens.forest} />}
-          title={status.label}
+          title={vm.lastWatered ? "Watered in last 7d" : status.label}
           detail={schedule?.reason ?? "Add a watering to start the schedule."}
         />
         <Pressable

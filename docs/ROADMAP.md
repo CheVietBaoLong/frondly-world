@@ -103,7 +103,10 @@ computation); `useWateringSchedules` issues one request per plant rather than
 a true batch endpoint; `scheduleStatus`'s "today" comparison is UTC-based;
 golden fixture covers 5 of 8 species and no decimal rainfall case; manual
 simulator verification of both screens (live sort/live mark-watered update)
-still pending as of PR open.
+still pending as of PR open; Plant Detail's "Watered in last 7d" card is
+static copy shown whenever `lastWatered` is set, not a real days-since
+countdown — add one once the offline fallback tracks watering history in a
+way that renders down to a specific day count.
 
 ## Open questions on hold ❓
 
