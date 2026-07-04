@@ -80,9 +80,13 @@ export default function ForageCapture() {
         >
           <View className="h-[58px] w-[58px] rounded-full border-2 border-citron" />
         </Pressable>
-        {/* Kept on the shutter's centerline (full-height wrapper) so it reads as
-            part of the same control row instead of floating in the corner. */}
-        <View className="absolute bottom-0 right-8 top-0 justify-center">
+        {/* Anchored to the row's own content box (paddingTop/paddingBottom), not
+            the outer View's padding box — otherwise bottom-0/top-0 stretches to
+            include the asymmetric bottom padding and pulls this off the shutter's centerline. */}
+        <View
+          className="absolute right-8 justify-center"
+          style={{ top: 18, bottom: insets.bottom + 96 }}
+        >
           <Pressable
             onPress={pickFromLibrary}
             className="h-12 w-12 items-center justify-center rounded-2xl border border-border bg-surface"
