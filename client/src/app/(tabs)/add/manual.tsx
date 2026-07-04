@@ -10,12 +10,13 @@ import { database } from "@/db";
 import { Plant } from "@/db/models/Plant";
 import { tokens } from "@/constants/tokens";
 import { IdentifyButton } from "@/components/identify-button";
-
-const ROOMS = ["Living room", "Bedroom", "Kitchen", "Office"] as const;
-const LIGHTS = ["Bright", "Medium", "Low"] as const;
-
-type RoomOption = (typeof ROOMS)[number];
-type LightOption = (typeof LIGHTS)[number];
+import {
+  RoomLightPicker,
+  ROOMS,
+  LIGHTS,
+  type RoomOption,
+  type LightOption,
+} from "@/components/room-light-picker";
 
 export default function AddManual() {
   const insets = useSafeAreaInsets();
@@ -41,9 +42,6 @@ export default function AddManual() {
     setPhotoUri(result.assets[0].uri);
   }
 
-  // dev-note: room/light aren't on the Plant model/schema yet, so they're
-  // captured in the UI but not persisted. Add columns + a migration when
-  // those fields are actually needed downstream.
   async function save() {
     if (!name.trim() || saving) return;
     setSaving(true);
@@ -56,6 +54,8 @@ export default function AddManual() {
           plant.latitude = null;
           plant.longitude = null;
           plant.heroPhoto = photoUri;
+          plant.room = room;
+          plant.light = light;
         });
       });
       router.replace("/");
@@ -150,53 +150,12 @@ export default function AddManual() {
           />
         </View>
 
-        <View>
-          <Text className="font-body text-[13px] text-secondary">Room</Text>
-          <View className="mt-2 flex-row flex-wrap gap-2">
-            {ROOMS.map((option) => (
-              <Pressable
-                key={option}
-                onPress={() => setRoom(option)}
-                className={
-                  option === room
-                    ? "rounded-full bg-forest px-4 py-3"
-                    : "rounded-full border border-border bg-surface px-4 py-3"
-                }
-              >
-                <Text
-                  className="font-body text-[13px]"
-                  style={{ color: option === room ? tokens.white : tokens.forest }}
-                >
-                  {option}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        <View>
-          <Text className="font-body text-[13px] text-secondary">Light</Text>
-          <View className="mt-2 flex-row items-center justify-between rounded-[18px] border border-border bg-paper p-2">
-            {LIGHTS.map((option) => (
-              <Pressable
-                key={option}
-                onPress={() => setLight(option)}
-                className={
-                  option === light
-                    ? "rounded-full bg-forest px-4 py-2"
-                    : "rounded-full bg-surface px-4 py-2"
-                }
-              >
-                <Text
-                  className="font-body text-[13px]"
-                  style={{ color: option === light ? tokens.white : tokens.forest }}
-                >
-                  {option}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
+        <RoomLightPicker
+          room={room}
+          light={light}
+          onRoomChange={setRoom}
+          onLightChange={setLight}
+        />
       </View>
 
       <Pressable
