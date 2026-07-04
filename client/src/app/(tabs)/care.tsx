@@ -71,7 +71,11 @@ export default function Care() {
 }
 
 function CareRow({ plant, schedule }: { plant: PlantVM; schedule: ScheduleResult | null }) {
-  const status = scheduleStatus(schedule?.next_water_date ?? null);
+  const status = scheduleStatus(
+    schedule?.next_water_date ?? null,
+    undefined,
+    plant.lastWatered == null
+  );
 
   return (
     <View className="flex-row items-center gap-3 rounded-[18px] border border-border bg-surface p-2.5">

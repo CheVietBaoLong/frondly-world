@@ -9,6 +9,15 @@ import type { Plant } from "@/db/models/Plant";
 
 export type VinePoint = { score: number; label: string };
 
+// One journal entry, rendered as a compact card (date + title) that opens the
+// full note on tap. Newest first.
+export type NoteVM = {
+  id: string;
+  date: string;
+  title: string;
+  healthScore: number | null;
+};
+
 export type PlantDetailVM = {
   name: string;
   species: string;
@@ -18,17 +27,21 @@ export type PlantDetailVM = {
   score: number | null;
   chip: { label: string; bg: ColorToken; fg: ColorToken };
   vine: VinePoint[];
-  latestNote: string;
-  careSteps: string[];
-  confidence: number | null;
+  notes: NoteVM[];
 };
 
 const fmtDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
+// First non-empty line, used as a card title when the note has no explicit one.
+const titleOf = (note: string) =>
+  note
+    .split("\n")
+    .find((l) => l.trim())
+    ?.trim() ?? "Note";
+
 function buildVM(plant: Plant, obs: Observation[]): PlantDetailVM {
   const scored = obs.filter((o) => o.healthScore != null);
   const score = scored.length ? scored[scored.length - 1].healthScore : null;
-  const latest = obs.length ? obs[obs.length - 1] : null;
   return {
     name: plant.name,
     species: plant.species,
@@ -41,9 +54,15 @@ function buildVM(plant: Plant, obs: Observation[]): PlantDetailVM {
       score: o.healthScore as number,
       label: i === scored.length - 1 ? "Today" : fmtDate(o.date),
     })),
-    latestNote: latest?.note ?? "",
-    careSteps: latest?.careSteps ?? [],
-    confidence: latest?.confidence ?? null,
+    notes: obs
+      .filter((o) => o.note?.trim())
+      .map((o) => ({
+        id: o.id,
+        date: fmtDate(o.date),
+        title: titleOf(o.note),
+        healthScore: o.healthScore,
+      }))
+      .reverse(),
   };
 }
 
