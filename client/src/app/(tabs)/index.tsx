@@ -13,7 +13,7 @@ import { useGarden, type PlantVM } from "@/hooks/use-garden";
 import { useWeather } from "@/hooks/use-weather";
 
 // Pixel-art fallback for plants without a captured photo.
-const PLANT_PLACEHOLDER = require("@/assets/images/plant-placeholder.png");
+const PLANT_PLACEHOLDER = require("@/assets/images/plant-placeholder.jpeg");
 
 // Garden Home — ports GardenHomeView. Reactive list of the user's plants split
 // into Needs Attention / Thriving, with a conversational care card up top.

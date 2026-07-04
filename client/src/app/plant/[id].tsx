@@ -17,7 +17,7 @@ import { useWateringSchedules } from "@/hooks/use-watering-schedules";
 import { scheduleStatus } from "@/lib/care";
 
 // Pixel-art fallback for plants without a captured photo.
-const PLANT_PLACEHOLDER = require("@/assets/images/plant-placeholder.png");
+const PLANT_PLACEHOLDER = require("@/assets/images/plant-placeholder.jpeg");
 
 async function markWatered(plantId: string) {
   await database.write(async () => {
