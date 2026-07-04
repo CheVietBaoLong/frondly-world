@@ -1,8 +1,8 @@
 # Frondly — Project Roadmap & Status
 
-**Updated:** 2026-07-03 (after PRs #19 UI polish, #20 Forage Finds persistence,
-#21 diagnose-note merged; two local branches open: `frondly/quick-fixes` +
-`frondly/plant-detail`, stacked, pending PR)
+**Updated:** 2026-07-04 (after PRs #19 UI polish, #20 Forage Finds persistence,
+#21 diagnose-note merged; three local branches open: `frondly/quick-fixes` +
+`frondly/plant-detail` (stacked) and `frondly/plant-identity`, all pending PR)
 
 One-page tracker: what's built, what's left for the app to fully work, and what's
 parked. Details live in the per-feature specs (`docs/*-spec.md`) and the
@@ -64,6 +64,7 @@ migration plan (`docs/react-native-migration-design.md`).
 | **Add-plant detail prompt** — "Choose from Photos" now routes into the manual form (name/species) instead of saving a bare "New plant" and bouncing home; manual form gained an optional inline photo picker | `frondly/quick-fixes` (local) |
 | **Live garden score** — Home cards now re-render on observation inserts (observe the observations collection), so a fresh diagnosis updates the card, not just Plant Detail | `frondly/plant-detail` (local) |
 | **Editable plant + journal note cards** — pencil → edit name/species; journal lists compact note cards opening a full-screen note view; never-watered plants show "Water when dry" not a dummy "Water in 7d" | `frondly/plant-detail` (local) |
+| **Agent-assisted plant identity** — photo → Gemini suggests name+species, prefills the editable fields on Edit + Add-manual; new `POST /plantcare/identify` (reuses the vision layer, no dataset gate); a photo picked on Edit also becomes the hero | `frondly/plant-identity` (local) |
 | Backend: plantcare ADK agent + tools, forage identify, offline test suites (client jest 54, server 15) | — |
 
 ## Left for the app to fully work 🔨
@@ -79,16 +80,12 @@ Rough priority order:
    `forage/api.ts`, and `lib/care.ts`; physical devices need a LAN IP
    (env/EAS config).
 
-## Next milestone — AI-assisted plant identity + diagnose thread 🎯
+## Next milestone — diagnose message thread 🎯
 
-Defined (deferred from the 2026-07-03 fixes round; the two big items the user
-explicitly parked for "next milestone"):
+Agent-assisted plant identity (item 1) is DONE — see the Implemented table
+(`frondly/plant-identity`, spec `docs/plant-identity-spec.md`). Remaining:
 
-1. **Agent-assisted name/species** — like Forage, let the agent suggest a
-   plant's name + species from its photo and prefill the edit/add form (roadmap's
-   old "Add Plant → Confirm & Save with AI prefill"). Edit screen
-   (`plant/edit.tsx`) is the natural home for the "identify this plant" button.
-2. **Diagnose message thread** — the diagnose screen is a single reply block, so
+1. **Diagnose message thread** — the diagnose screen is a single reply block, so
    a follow-up shows only the agent's answer, not the user's question
    (`plant/diagnose.tsx:35`, `:128`). Convert to a rendered user/agent thread.
 

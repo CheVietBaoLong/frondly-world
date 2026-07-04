@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from forage.identify import identify_wild_plant
 from forage.vision import GeminiVision, VisionBackend
+from plantcare.identify import HOUSEPLANT_PROMPT
 from plantcare.tools.schedule import watering_schedule
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")  # GEMINI_API_KEY
@@ -35,6 +36,26 @@ def get_vision() -> VisionBackend:
 async def forage_identify(file: UploadFile, vision: VisionBackend = Depends(get_vision)) -> dict:
     image = await file.read()
     return identify_wild_plant(image, vision).to_dict()
+
+
+@lru_cache(maxsize=1)
+def get_houseplant_vision() -> VisionBackend:
+    """GeminiVision with the houseplant prompt. Overridden with a stub in tests."""
+    return GeminiVision(prompt=HOUSEPLANT_PROMPT)
+
+
+@app.post("/plantcare/identify")
+async def plantcare_identify(
+    file: UploadFile, vision: VisionBackend = Depends(get_houseplant_vision)
+) -> dict:
+    image = await file.read()
+    candidates = vision.identify(image)  # sorted best-first by the backend
+    top = candidates[0] if candidates else None
+    return {
+        "name": top.name if top else None,
+        "scientific_name": top.scientific_name if top else None,
+        "confidence": top.confidence if top else 0.0,
+    }
 
 
 class WateringScheduleRequest(BaseModel):

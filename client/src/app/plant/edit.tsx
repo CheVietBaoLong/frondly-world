@@ -1,22 +1,24 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { IdentifyButton } from "@/components/identify-button";
 import { tokens } from "@/constants/tokens";
 import { database } from "@/db";
 import { Plant } from "@/db/models/Plant";
 
 // Edit a plant's name/species. Reached from the pencil on Plant Detail — fixes
 // plants stuck at "New plant" / "Unknown species" after a photo/quick add.
-// dev-note: species is free-text for now; an agent-assisted "identify this
-// plant" prefill (like Forage) is the deferred next-milestone item.
 export default function EditPlant() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [name, setName] = useState("");
   const [species, setSpecies] = useState("");
+  const [heroPhoto, setHeroPhoto] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -29,6 +31,7 @@ export default function EditPlant() {
         if (cancelled) return;
         setName(plant.name);
         setSpecies(plant.species);
+        setHeroPhoto(plant.heroPhoto);
         setLoaded(true);
       })
       .catch((e) => console.error("load plant failed:", e));
@@ -36,6 +39,18 @@ export default function EditPlant() {
       cancelled = true;
     };
   }, [id]);
+
+  async function pickPhoto() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.6,
+      allowsEditing: true,
+    });
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+    setHeroPhoto(result.assets[0].uri);
+  }
 
   async function save() {
     if (!name.trim() || saving) return;
@@ -46,6 +61,7 @@ export default function EditPlant() {
         await plant.update((p) => {
           p.name = name.trim();
           p.species = species.trim() || "Unknown species";
+          p.heroPhoto = heroPhoto;
         });
       });
       router.back();
@@ -78,6 +94,40 @@ export default function EditPlant() {
           <Text className="font-body text-xs text-secondary">Update its name and species.</Text>
         </View>
       </View>
+
+      {heroPhoto ? (
+        <Pressable
+          onPress={pickPhoto}
+          className="h-[190px] items-center justify-center overflow-hidden rounded-[20px] bg-stoneBg"
+        >
+          <Image
+            source={{ uri: heroPhoto }}
+            style={{ width: "100%", height: "100%" }}
+            contentFit="cover"
+          />
+          <View className="absolute bottom-2 right-2 flex-row items-center gap-1 rounded-full bg-forest/80 px-3 py-1.5">
+            <Ionicons name="camera" size={13} color={tokens.white} />
+            <Text className="font-body text-xs text-white">Change</Text>
+          </View>
+        </Pressable>
+      ) : (
+        <Pressable
+          onPress={pickPhoto}
+          className="h-[130px] flex-row items-center justify-center gap-2 rounded-[20px] border border-dashed border-border bg-surface"
+        >
+          <Ionicons name="image-outline" size={20} color={tokens.secondary} />
+          <Text className="font-body text-[13px] text-secondary">Add a photo (optional)</Text>
+        </Pressable>
+      )}
+
+      <IdentifyButton
+        photoUri={heroPhoto}
+        onPhotoPicked={setHeroPhoto}
+        onIdentified={({ name: n, scientificName }) => {
+          setName(n);
+          setSpecies(scientificName);
+        }}
+      />
 
       <View className="gap-4">
         <View>

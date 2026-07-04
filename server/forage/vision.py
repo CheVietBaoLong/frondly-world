@@ -82,12 +82,13 @@ class GeminiVision:
     layer downstream, never from the model.
     """
 
-    def __init__(self, client=None, model: str = _MODEL):
+    def __init__(self, client=None, model: str = _MODEL, prompt: str = _PROMPT):
         if client is None:
             from google import genai  # lazy: keeps vision.py importable without the SDK
             client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
         self._client = client
         self._model = model
+        self._prompt = prompt
 
     def identify(self, image) -> list[Candidate]:
         from google.genai import types
@@ -96,7 +97,7 @@ class GeminiVision:
         try:
             resp = self._client.models.generate_content(
                 model=self._model,
-                contents=[types.Part.from_bytes(data=image_bytes, mime_type=mime), _PROMPT],
+                contents=[types.Part.from_bytes(data=image_bytes, mime_type=mime), self._prompt],
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     response_schema=_GeminiResponse,

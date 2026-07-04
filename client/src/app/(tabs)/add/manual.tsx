@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { database } from "@/db";
 import { Plant } from "@/db/models/Plant";
 import { tokens } from "@/constants/tokens";
+import { IdentifyButton } from "@/components/identify-button";
 
 const ROOMS = ["Living room", "Bedroom", "Kitchen", "Office"] as const;
 const LIGHTS = ["Bright", "Medium", "Low"] as const;
@@ -20,6 +21,7 @@ export default function AddManual() {
   const insets = useSafeAreaInsets();
   const { photo } = useLocalSearchParams<{ photo?: string }>();
   const [name, setName] = useState("");
+  const [species, setSpecies] = useState("");
   const [photoUri, setPhotoUri] = useState<string | null>(photo ?? null);
   const [room, setRoom] = useState<RoomOption>(ROOMS[0]);
   const [light, setLight] = useState<LightOption>(LIGHTS[1]);
@@ -49,7 +51,7 @@ export default function AddManual() {
       await database.write(async () => {
         await database.get<Plant>("plants").create((plant) => {
           plant.name = name.trim();
-          plant.species = "Unknown species";
+          plant.species = species.trim() || "Unknown species";
           plant.dateAdded = new Date();
           plant.latitude = null;
           plant.longitude = null;
@@ -114,6 +116,15 @@ export default function AddManual() {
         </Pressable>
       )}
 
+      <IdentifyButton
+        photoUri={photoUri}
+        onPhotoPicked={setPhotoUri}
+        onIdentified={({ name: n, scientificName }) => {
+          setName(n);
+          setSpecies(scientificName);
+        }}
+      />
+
       <View className="gap-4">
         <View>
           <Text className="font-body text-[13px] text-secondary">Nickname</Text>
@@ -121,6 +132,18 @@ export default function AddManual() {
             value={name}
             onChangeText={setName}
             placeholder="Monstera"
+            placeholderTextColor={tokens.secondary}
+            className="mt-2 rounded-[18px] border border-border bg-surface px-4 py-3 font-body text-[15px] text-forest"
+            autoCapitalize="words"
+          />
+        </View>
+
+        <View>
+          <Text className="font-body text-[13px] text-secondary">Species</Text>
+          <TextInput
+            value={species}
+            onChangeText={setSpecies}
+            placeholder="Monstera deliciosa"
             placeholderTextColor={tokens.secondary}
             className="mt-2 rounded-[18px] border border-border bg-surface px-4 py-3 font-body text-[15px] text-forest"
             autoCapitalize="words"
