@@ -4,6 +4,7 @@ import { schema } from "./schema";
 import { migrations } from "./migrations";
 import { Plant } from "./models/Plant";
 import { Observation } from "./models/Observation";
+import { Find } from "./models/Find";
 
 const adapter = new SQLiteAdapter({
   schema,
@@ -14,5 +15,5 @@ const adapter = new SQLiteAdapter({
 
 export const database = new Database({
   adapter,
-  modelClasses: [Plant, Observation],
+  modelClasses: [Plant, Observation, Find],
 });

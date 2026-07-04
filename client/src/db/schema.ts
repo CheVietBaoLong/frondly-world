@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from "@nozbe/watermelondb";
 
 export const schema = appSchema({
-  version: 2,
+  version: 3,
   tables: [
     tableSchema({
       name: "plants",
@@ -26,6 +26,18 @@ export const schema = appSchema({
         { name: "care_steps", type: "string", isOptional: true }, // JSON string
         { name: "confidence", type: "number", isOptional: true }, // 0–1, from the agent
         { name: "photo", type: "string", isOptional: true }, // file URI
+      ],
+    }),
+    tableSchema({
+      name: "finds",
+      columns: [
+        { name: "common_name", type: "string", isOptional: true }, // suppressed for low_confidence
+        { name: "scientific_name", type: "string", isOptional: true },
+        { name: "state", type: "string" }, // ForageState
+        { name: "confidence", type: "number" }, // 0–1
+        { name: "photo", type: "string", isOptional: true }, // capture URI
+        { name: "result_json", type: "string" }, // full ForageResult snapshot
+        { name: "saved_at", type: "number" },
       ],
     }),
   ],
