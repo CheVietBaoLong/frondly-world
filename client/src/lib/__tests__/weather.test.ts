@@ -1,7 +1,13 @@
-import { describeWmoCode } from "../weather";
+import { describeWmoCode, formatTemp } from "../weather";
 
 // expo-location is native; the mapping under test is pure, so stub the module out.
 jest.mock("expo-location", () => ({}));
+
+describe("formatTemp", () => {
+  it("rounds both units", () => {
+    expect(formatTemp({ tempF: 71.6, tempC: 22.0 })).toBe("72°F / 22°C");
+  });
+});
 
 describe("describeWmoCode", () => {
   it.each([
