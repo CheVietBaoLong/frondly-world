@@ -28,6 +28,16 @@ import {
   type Diagnosis,
   type MessagePart,
 } from "@/lib/api";
+import {
+  appendFollowUp,
+  markTurnDone,
+  markTurnError,
+  markTurnNoteSaved,
+  resetTurnForRetry,
+  setTurnDiagnosis,
+  setTurnText,
+  type Turn,
+} from "@/lib/diagnose-turns";
 
 type Phase = "pick" | "sending" | "done" | "error";
 
@@ -46,6 +56,9 @@ export default function Diagnose() {
   const [error, setError] = useState<string | null>(null);
   const [followUp, setFollowUp] = useState("");
   const [noteSaved, setNoteSaved] = useState(false);
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const nextTurnId = useRef(0);
+  const isStreaming = turns.some((t) => t.status === "streaming");
   // dev-note: hasSession mirrors sessionRef for render-time reads (React
   // Compiler's react-hooks/refs rule forbids reading ref.current in render);
   // sessionRef itself stays the source of truth for the async flow below.
@@ -107,7 +120,7 @@ export default function Diagnose() {
     });
   }
 
-  function stream(parts: MessagePart[]) {
+  function runInitialStream(parts: MessagePart[]) {
     setPhase("sending");
     setError(null);
     setReply("");
@@ -126,6 +139,20 @@ export default function Diagnose() {
     });
   }
 
+  // Follow-ups no longer touch `phase`/`reply`/`diagnosis` — they update
+  // one Turn by id, found via `assistantId`'s closure below.
+  function runFollowUpStream(assistantId: string, parts: MessagePart[]) {
+    xhrRef.current = sendMessage(sessionRef.current as string, parts, {
+      onText: (text) => setTurns((t) => setTurnText(t, assistantId, text)),
+      onDiagnosis: (d) => {
+        setTurns((t) => setTurnDiagnosis(t, assistantId, d));
+        saveObservation(d).catch((e) => console.error("diagnosis save failed:", e));
+      },
+      onDone: () => setTurns((t) => markTurnDone(t, assistantId)),
+      onError: (e) => setTurns((t) => markTurnError(t, assistantId, e.message)),
+    });
+  }
+
   // dev-note: retry after a failed follow-up re-runs the initial diagnose —
   // acceptable for a dev-server flow; a message history would fix it.
   async function diagnose() {
@@ -136,7 +163,7 @@ export default function Diagnose() {
       const history = await plant.historyForBackend();
       sessionRef.current = sessionRef.current ?? (await createSession());
       setHasSession(true);
-      stream(buildDiagnoseParts(plant, history, photoBase64));
+      runInitialStream(buildDiagnoseParts(plant, history, photoBase64));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setPhase("error");
@@ -145,12 +172,25 @@ export default function Diagnose() {
 
   function ask() {
     const q = followUp.trim();
-    if (!q || !sessionRef.current) return;
+    if (!q || !sessionRef.current || isStreaming) return;
     setFollowUp("");
-    stream([{ text: q }]);
+    const assistantId = `turn-${nextTurnId.current++}`;
+    setTurns((t) => appendFollowUp(t, q, assistantId));
+    runFollowUpStream(assistantId, [{ text: q }]);
   }
 
-  const canAsk = phase === "done" && hasSession;
+  function retryTurn(id: string, originalText: string) {
+    setTurns((t) => resetTurnForRetry(t, id));
+    runFollowUpStream(id, [{ text: originalText }]);
+  }
+
+  function saveTurnNote(id: string, text: string) {
+    saveNote(text)
+      .then(() => setTurns((t) => markTurnNoteSaved(t, id)))
+      .catch((e) => console.error("save note failed:", e));
+  }
+
+  const canAsk = phase === "done" && hasSession && !isStreaming;
 
   return (
     <KeyboardAvoidingView
@@ -278,6 +318,24 @@ export default function Diagnose() {
           </View>
         ) : null}
 
+        {/* follow-up thread */}
+        {turns.map((turn, i) => (
+          <MessageBubble
+            key={turn.id}
+            turn={turn}
+            onRetry={
+              turn.role === "assistant" && turn.status === "error"
+                ? () => retryTurn(turn.id, turns[i - 1]?.text ?? "")
+                : undefined
+            }
+            onSaveNote={
+              turn.role === "assistant" && turn.status === "done" && !turn.noteSaved
+                ? () => saveTurnNote(turn.id, turn.text)
+                : undefined
+            }
+          />
+        ))}
+
         {/* error + retry */}
         {phase === "error" ? (
           <View className="gap-3 rounded-[18px] border border-border bg-surface p-3.5">
@@ -313,5 +371,93 @@ export default function Diagnose() {
         </View>
       ) : null}
     </KeyboardAvoidingView>
+  );
+}
+
+function MessageBubble({
+  turn,
+  onRetry,
+  onSaveNote,
+}: {
+  turn: Turn;
+  onRetry?: () => void;
+  onSaveNote?: () => void;
+}) {
+  if (turn.role === "user") {
+    return (
+      <View
+        className="self-end rounded-[18px] rounded-br-sm bg-forest px-3.5 py-2.5"
+        style={{ maxWidth: "85%" }}
+      >
+        <Text className="font-body text-sm text-white">{turn.text}</Text>
+      </View>
+    );
+  }
+
+  if (turn.status === "error") {
+    return (
+      <View
+        className="gap-2 self-start rounded-[18px] rounded-bl-sm border border-border bg-surface p-3"
+        style={{ maxWidth: "85%" }}
+      >
+        <Text className="font-body text-sm text-forest">{turn.errorMessage}</Text>
+        {onRetry ? (
+          <Pressable onPress={onRetry} className="self-start rounded-full bg-citron px-3 py-1.5">
+            <Text className="font-body text-xs font-semibold text-forest">Retry</Text>
+          </Pressable>
+        ) : null}
+      </View>
+    );
+  }
+
+  return (
+    <View
+      className="gap-2 self-start rounded-[18px] rounded-bl-sm border border-border bg-surface p-3"
+      style={{ maxWidth: "85%" }}
+    >
+      {turn.status === "streaming" && !turn.text ? (
+        <View className="flex-row items-center gap-2">
+          <ActivityIndicator color={tokens.forest} size="small" />
+          <Text className="font-body text-sm text-secondary">Thinking…</Text>
+        </View>
+      ) : (
+        <Text className="font-body text-sm text-forest">{turn.text}</Text>
+      )}
+
+      {turn.diagnosis ? (
+        <View className="gap-2 border-t border-border pt-2">
+          <SectionLabel text="DIAGNOSIS" />
+          <Text className="font-body text-sm text-forest">{turn.diagnosis.problem}</Text>
+          {turn.diagnosis.careSteps.map((step) => (
+            <View key={step} className="flex-row items-center gap-1.5">
+              <Ionicons name="checkmark-circle" size={13} color={tokens.secondary} />
+              <Text className="flex-1 font-body text-xs text-secondary">{step}</Text>
+            </View>
+          ))}
+          <Chip
+            text={`Confidence ${Math.round(turn.diagnosis.confidence * 100)}%`}
+            bg="mintBg"
+            fg="leafText"
+          />
+        </View>
+      ) : null}
+
+      {turn.status === "done" ? (
+        turn.noteSaved ? (
+          <View className="flex-row items-center gap-1.5">
+            <Ionicons name="checkmark-circle" size={13} color={tokens.leafText} />
+            <Text className="font-body text-xs text-leafText">Saved to journal</Text>
+          </View>
+        ) : onSaveNote ? (
+          <Pressable
+            onPress={onSaveNote}
+            className="flex-row items-center gap-1.5 self-start rounded-full bg-mintBg px-3 py-1.5"
+          >
+            <Ionicons name="bookmark-outline" size={13} color={tokens.leafText} />
+            <Text className="font-body text-xs font-semibold text-leafText">Save this note</Text>
+          </Pressable>
+        ) : null
+      ) : null}
+    </View>
   );
 }
