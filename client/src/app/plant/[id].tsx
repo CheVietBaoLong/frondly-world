@@ -16,6 +16,9 @@ import { useRecentRainfall } from "@/hooks/use-recent-rainfall";
 import { useWateringSchedules } from "@/hooks/use-watering-schedules";
 import { scheduleStatus } from "@/lib/care";
 
+// Pixel-art fallback for plants without a captured photo.
+const PLANT_PLACEHOLDER = require("@/assets/images/plant-placeholder.jpeg");
+
 async function markWatered(plantId: string) {
   await database.write(async () => {
     const plant = await database.get<Plant>("plants").find(plantId);
@@ -74,13 +77,11 @@ export default function PlantDetail() {
 
       {/* hero */}
       <View className="h-[150px] overflow-hidden rounded-[20px] bg-forest">
-        {vm.heroPhoto ? (
-          <Image source={{ uri: vm.heroPhoto }} style={{ flex: 1 }} contentFit="cover" />
-        ) : (
-          <View className="flex-1 items-center justify-center">
-            <Ionicons name="leaf" size={40} color={tokens.sage} />
-          </View>
-        )}
+        <Image
+          source={vm.heroPhoto ? { uri: vm.heroPhoto } : PLANT_PLACEHOLDER}
+          style={{ flex: 1 }}
+          contentFit="cover"
+        />
         {vm.score != null ? (
           <View className="absolute left-3 top-3">
             <ScoreBadge score={vm.score} />

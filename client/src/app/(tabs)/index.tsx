@@ -12,6 +12,9 @@ import { tokens } from "@/constants/tokens";
 import { useGarden, type PlantVM } from "@/hooks/use-garden";
 import { useWeather } from "@/hooks/use-weather";
 
+// Pixel-art fallback for plants without a captured photo.
+const PLANT_PLACEHOLDER = require("@/assets/images/plant-placeholder.jpeg");
+
 // Garden Home — ports GardenHomeView. Reactive list of the user's plants split
 // into Needs Attention / Thriving, with a conversational care card up top.
 export default function Garden() {
@@ -33,8 +36,9 @@ export default function Garden() {
     >
       <View className="flex-row items-start">
         <View className="flex-1">
-          <Text className="font-display text-[28px] text-forest">My Garden</Text>
+          <Text className="font-display text-[28px] text-forest">Leafy Pals</Text>
           <Text className="font-body text-xs text-secondary">
+            {weather ? `${weather.city} · ${Math.round(weather.tempF)}° · ` : ""}
             {plants.length} plants · {needCare.length} need care today
           </Text>
         </View>
@@ -82,10 +86,12 @@ function PlantCard({ plant }: { plant: PlantVM }) {
     <Link href={{ pathname: "/plant/[id]", params: { id: plant.id } }} asChild>
       <Pressable className="w-[48%] rounded-[18px] border border-border bg-surface p-2.5">
         <View className="h-[116px] overflow-hidden rounded-[14px] bg-sage">
-          {/* dev-note: heroPhoto assumed to be a displayable URI; null until the capture flow ships. */}
-          {plant.heroPhoto ? (
-            <Image source={{ uri: plant.heroPhoto }} style={{ flex: 1 }} contentFit="cover" />
-          ) : null}
+          {/* dev-note: heroPhoto assumed to be a displayable URI; falls back to the pixel-art placeholder until a photo is captured. */}
+          <Image
+            source={plant.heroPhoto ? { uri: plant.heroPhoto } : PLANT_PLACEHOLDER}
+            style={{ flex: 1 }}
+            contentFit="cover"
+          />
           {plant.score != null ? (
             <View className="absolute left-2 top-2">
               <ScoreBadge score={plant.score} compact />
