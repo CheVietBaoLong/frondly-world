@@ -80,12 +80,16 @@ export default function ForageCapture() {
         >
           <View className="h-[58px] w-[58px] rounded-full border-2 border-citron" />
         </Pressable>
-        <Pressable
-          onPress={pickFromLibrary}
-          className="absolute right-8 h-12 w-12 items-center justify-center rounded-2xl border border-border bg-surface"
-        >
-          <Ionicons name="images-outline" size={20} color={tokens.forest} />
-        </Pressable>
+        {/* Kept on the shutter's centerline (full-height wrapper) so it reads as
+            part of the same control row instead of floating in the corner. */}
+        <View className="absolute bottom-0 right-8 top-0 justify-center">
+          <Pressable
+            onPress={pickFromLibrary}
+            className="h-12 w-12 items-center justify-center rounded-2xl border border-border bg-surface"
+          >
+            <Ionicons name="images-outline" size={20} color={tokens.forest} />
+          </Pressable>
+        </View>
       </View>
 
       <Text className="absolute bottom-[76px] w-full text-center font-body text-[11px] text-secondary">

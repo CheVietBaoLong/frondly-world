@@ -5,14 +5,11 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { database } from "@/db";
-import { Plant } from "@/db/models/Plant";
 import { tokens } from "@/constants/tokens";
 
 export default function AddPhotos() {
   const insets = useSafeAreaInsets();
   const [permission, setPermission] = useState<boolean | null>(null);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     ImagePicker.getMediaLibraryPermissionsAsync().then((result) => {
@@ -20,6 +17,9 @@ export default function AddPhotos() {
     });
   }, []);
 
+  // Pick a photo, then hand it to the manual form so the user names the plant
+  // and confirms its details — matching the camera flow (add/index.tsx). We no
+  // longer save a bare "New plant" here and bounce home.
   async function choosePhoto() {
     if (permission !== true) {
       const result = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -34,26 +34,7 @@ export default function AddPhotos() {
     });
 
     if (result.canceled || !result.assets?.[0]?.uri) return;
-    const uri = result.assets[0].uri;
-
-    setSaving(true);
-    try {
-      await database.write(async () => {
-        await database.get<Plant>("plants").create((plant) => {
-          plant.name = "New plant";
-          plant.species = "Unknown species";
-          plant.dateAdded = new Date();
-          plant.latitude = null;
-          plant.longitude = null;
-          plant.heroPhoto = uri;
-        });
-      });
-      router.replace("/");
-    } catch (e) {
-      console.error("photo save failed", e);
-    } finally {
-      setSaving(false);
-    }
+    router.replace({ pathname: "/add/manual", params: { photo: result.assets[0].uri } });
   }
 
   return (
@@ -83,16 +64,11 @@ export default function AddPhotos() {
 
       <View className="rounded-[24px] border border-border bg-surface p-6">
         <Text className="font-body text-sm text-secondary">
-          {"Pick a photo from your library. We\'ll save it immediately so you can tag it later."}
+          {"Pick a photo from your library, then add its details on the next screen."}
         </Text>
-        <Pressable
-          onPress={choosePhoto}
-          disabled={saving}
-          className="mt-6 rounded-[18px] bg-forest px-5 py-4"
-          style={{ opacity: saving ? 0.6 : 1 }}
-        >
+        <Pressable onPress={choosePhoto} className="mt-6 rounded-[18px] bg-forest px-5 py-4">
           <Text className="text-center font-body text-base font-semibold text-white">
-            {saving ? "Saving..." : permission === false ? "Allow photo access" : "Choose Photo"}
+            {permission === false ? "Allow photo access" : "Choose Photo"}
           </Text>
         </Pressable>
       </View>
