@@ -11,6 +11,7 @@ import { SectionLabel } from "@/components/ui/section-label";
 import { tokens } from "@/constants/tokens";
 import { useGarden, type PlantVM } from "@/hooks/use-garden";
 import { useWeather } from "@/hooks/use-weather";
+import { formatTemp } from "@/lib/weather";
 
 // Pixel-art fallback for plants without a captured photo.
 const PLANT_PLACEHOLDER = require("@/assets/images/plant-placeholder.jpeg");
@@ -38,7 +39,7 @@ export default function Garden() {
         <View className="flex-1">
           <Text className="font-display text-[28px] text-forest">Leafy Pals</Text>
           <Text className="font-body text-xs text-secondary">
-            {weather ? `${weather.city} · ${Math.round(weather.tempF)}° · ` : ""}
+            {weather ? `${weather.city} · ${formatTemp(weather)} · ` : ""}
             {plants.length} plants · {needCare.length} need care today
           </Text>
         </View>
@@ -50,9 +51,7 @@ export default function Garden() {
       <AssistantCard
         icon={<Ionicons name={weather?.icon ?? "sunny"} size={18} color={tokens.forest} />}
         title={
-          weather
-            ? `${weather.city} · ${Math.round(weather.tempF)}° · ${weather.label}`
-            : "Your garden"
+          weather ? `${weather.city} · ${formatTemp(weather)} · ${weather.label}` : "Your garden"
         }
         detail={
           needCare.length === 0
