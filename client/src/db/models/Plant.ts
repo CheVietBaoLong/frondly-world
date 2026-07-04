@@ -17,6 +17,8 @@ export class Plant extends Model {
   @field("latitude") latitude: number | null;
   @field("longitude") longitude: number | null;
   @field("hero_photo") heroPhoto: string | null;
+  @field("room") room: string | null;
+  @field("light") light: string | null;
   @children("observations") observations: Query<Observation>;
 
   // oldest→newest, what the timeline + historyForBackend consume (ports Plant.timeline)
