@@ -44,6 +44,7 @@ export default function Diagnose() {
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [followUp, setFollowUp] = useState("");
+  const [noteSaved, setNoteSaved] = useState(false);
   // dev-note: hasSession mirrors sessionRef for render-time reads (React
   // Compiler's react-hooks/refs rule forbids reading ref.current in render);
   // sessionRef itself stays the source of truth for the async flow below.
@@ -91,10 +92,25 @@ export default function Diagnose() {
     });
   }
 
+  // Persist a chat reply as a plain journal note (no health score) so a helpful
+  // follow-up answer isn't lost when the session ends. Surfaces on Plant Detail
+  // via `latestNote`.
+  async function saveNote(text: string) {
+    const plant = await database.get<Plant>("plants").find(id);
+    await database.write(async () => {
+      await database.get<Observation>("observations").create((o) => {
+        o.plant.set(plant);
+        o.note = text;
+        o.date = new Date();
+      });
+    });
+  }
+
   function stream(parts: MessagePart[]) {
     setPhase("sending");
     setError(null);
     setReply("");
+    setNoteSaved(false);
     xhrRef.current = sendMessage(sessionRef.current as string, parts, {
       onText: setReply,
       onDiagnosis: (d) => {
@@ -205,6 +221,28 @@ export default function Diagnose() {
           <View className="gap-2 rounded-[18px] border border-border bg-surface p-3.5">
             <SectionLabel text={phase === "sending" ? "THINKING…" : "ASSISTANT"} />
             <Text className="font-body text-sm text-forest">{reply}</Text>
+            {phase === "done" ? (
+              noteSaved ? (
+                <View className="flex-row items-center gap-1.5">
+                  <Ionicons name="checkmark-circle" size={13} color={tokens.leafText} />
+                  <Text className="font-body text-xs text-leafText">Saved to journal</Text>
+                </View>
+              ) : (
+                <Pressable
+                  onPress={() =>
+                    saveNote(reply)
+                      .then(() => setNoteSaved(true))
+                      .catch((e) => console.error("save note failed:", e))
+                  }
+                  className="flex-row items-center gap-1.5 self-start rounded-full bg-mintBg px-3 py-1.5"
+                >
+                  <Ionicons name="bookmark-outline" size={13} color={tokens.leafText} />
+                  <Text className="font-body text-xs font-semibold text-leafText">
+                    Save this note
+                  </Text>
+                </Pressable>
+              )
+            ) : null}
           </View>
         ) : null}
 
