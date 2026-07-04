@@ -153,8 +153,6 @@ export default function Diagnose() {
     });
   }
 
-  // dev-note: retry after a failed follow-up re-runs the initial diagnose —
-  // acceptable for a dev-server flow; a message history would fix it.
   async function diagnose() {
     if (!photoBase64) return;
     try {
@@ -180,6 +178,7 @@ export default function Diagnose() {
   }
 
   function retryTurn(id: string, originalText: string) {
+    if (isStreaming) return;
     setTurns((t) => resetTurnForRetry(t, id));
     runFollowUpStream(id, [{ text: originalText }]);
   }
@@ -324,7 +323,7 @@ export default function Diagnose() {
             key={turn.id}
             turn={turn}
             onRetry={
-              turn.role === "assistant" && turn.status === "error"
+              turn.role === "assistant" && turn.status === "error" && !isStreaming
                 ? () => retryTurn(turn.id, turns[i - 1]?.text ?? "")
                 : undefined
             }
@@ -394,6 +393,45 @@ function MessageBubble({
     );
   }
 
+  // Shared between the "error" and "done" branches below: an assistant turn
+  // that already received a diagnosis before erroring (e.g. a retry that
+  // failed after the model had already streamed a diagnosis, or a fresh
+  // follow-up that errored post-diagnosis) must keep showing the diagnosis
+  // card and save-note affordance — markTurnError only patches
+  // status/errorMessage and deliberately preserves turn.diagnosis/noteSaved.
+  const diagnosisCard = turn.diagnosis ? (
+    <View className="gap-2 border-t border-border pt-2">
+      <SectionLabel text="DIAGNOSIS" />
+      <Text className="font-body text-sm text-forest">{turn.diagnosis.problem}</Text>
+      {turn.diagnosis.careSteps.map((step) => (
+        <View key={step} className="flex-row items-center gap-1.5">
+          <Ionicons name="checkmark-circle" size={13} color={tokens.secondary} />
+          <Text className="flex-1 font-body text-xs text-secondary">{step}</Text>
+        </View>
+      ))}
+      <Chip
+        text={`Confidence ${Math.round(turn.diagnosis.confidence * 100)}%`}
+        bg="mintBg"
+        fg="leafText"
+      />
+    </View>
+  ) : null;
+
+  const saveNoteAffordance = turn.noteSaved ? (
+    <View className="flex-row items-center gap-1.5">
+      <Ionicons name="checkmark-circle" size={13} color={tokens.leafText} />
+      <Text className="font-body text-xs text-leafText">Saved to journal</Text>
+    </View>
+  ) : onSaveNote ? (
+    <Pressable
+      onPress={onSaveNote}
+      className="flex-row items-center gap-1.5 self-start rounded-full bg-mintBg px-3 py-1.5"
+    >
+      <Ionicons name="bookmark-outline" size={13} color={tokens.leafText} />
+      <Text className="font-body text-xs font-semibold text-leafText">Save this note</Text>
+    </Pressable>
+  ) : null;
+
   if (turn.status === "error") {
     return (
       <View
@@ -406,6 +444,8 @@ function MessageBubble({
             <Text className="font-body text-xs font-semibold text-forest">Retry</Text>
           </Pressable>
         ) : null}
+        {diagnosisCard}
+        {saveNoteAffordance}
       </View>
     );
   }
@@ -424,40 +464,9 @@ function MessageBubble({
         <Text className="font-body text-sm text-forest">{turn.text}</Text>
       )}
 
-      {turn.diagnosis ? (
-        <View className="gap-2 border-t border-border pt-2">
-          <SectionLabel text="DIAGNOSIS" />
-          <Text className="font-body text-sm text-forest">{turn.diagnosis.problem}</Text>
-          {turn.diagnosis.careSteps.map((step) => (
-            <View key={step} className="flex-row items-center gap-1.5">
-              <Ionicons name="checkmark-circle" size={13} color={tokens.secondary} />
-              <Text className="flex-1 font-body text-xs text-secondary">{step}</Text>
-            </View>
-          ))}
-          <Chip
-            text={`Confidence ${Math.round(turn.diagnosis.confidence * 100)}%`}
-            bg="mintBg"
-            fg="leafText"
-          />
-        </View>
-      ) : null}
+      {diagnosisCard}
 
-      {turn.status === "done" ? (
-        turn.noteSaved ? (
-          <View className="flex-row items-center gap-1.5">
-            <Ionicons name="checkmark-circle" size={13} color={tokens.leafText} />
-            <Text className="font-body text-xs text-leafText">Saved to journal</Text>
-          </View>
-        ) : onSaveNote ? (
-          <Pressable
-            onPress={onSaveNote}
-            className="flex-row items-center gap-1.5 self-start rounded-full bg-mintBg px-3 py-1.5"
-          >
-            <Ionicons name="bookmark-outline" size={13} color={tokens.leafText} />
-            <Text className="font-body text-xs font-semibold text-leafText">Save this note</Text>
-          </Pressable>
-        ) : null
-      ) : null}
+      {turn.status === "done" ? saveNoteAffordance : null}
     </View>
   );
 }
