@@ -7,6 +7,13 @@ import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { IdentifyButton } from "@/components/identify-button";
+import {
+  RoomLightPicker,
+  ROOMS,
+  LIGHTS,
+  type RoomOption,
+  type LightOption,
+} from "@/components/room-light-picker";
 import { tokens } from "@/constants/tokens";
 import { database } from "@/db";
 import { Plant } from "@/db/models/Plant";
@@ -19,6 +26,8 @@ export default function EditPlant() {
   const [name, setName] = useState("");
   const [species, setSpecies] = useState("");
   const [heroPhoto, setHeroPhoto] = useState<string | null>(null);
+  const [room, setRoom] = useState<RoomOption>(ROOMS[0]);
+  const [light, setLight] = useState<LightOption>(LIGHTS[1]);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -32,6 +41,8 @@ export default function EditPlant() {
         setName(plant.name);
         setSpecies(plant.species);
         setHeroPhoto(plant.heroPhoto);
+        setRoom((plant.room as RoomOption) ?? ROOMS[0]);
+        setLight((plant.light as LightOption) ?? LIGHTS[1]);
         setLoaded(true);
       })
       .catch((e) => console.error("load plant failed:", e));
@@ -62,6 +73,8 @@ export default function EditPlant() {
           p.name = name.trim();
           p.species = species.trim() || "Unknown species";
           p.heroPhoto = heroPhoto;
+          p.room = room;
+          p.light = light;
         });
       });
       router.back();
@@ -153,6 +166,13 @@ export default function EditPlant() {
             autoCapitalize="words"
           />
         </View>
+
+        <RoomLightPicker
+          room={room}
+          light={light}
+          onRoomChange={setRoom}
+          onLightChange={setLight}
+        />
       </View>
 
       <Pressable
