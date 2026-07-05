@@ -4,9 +4,7 @@
 // (`adb reverse tcp:8000 tcp:8000`), so localhost:8000 on the device maps to the
 // dev machine — same trick Metro uses for :8081.
 //
-// dev-note: base URL is hardcoded for local dev. Move to an env/EAS config for
-// real distribution.
-const API_BASE = "http://localhost:8000";
+import { API_BASE } from "@/lib/config";
 
 // Mirrors server/forage/identify.py ForageResult. Four mutually exclusive states;
 // below the confidence threshold the name is suppressed (low_confidence).
