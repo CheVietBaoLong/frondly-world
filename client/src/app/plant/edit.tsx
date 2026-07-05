@@ -73,6 +73,10 @@ export default function EditPlant() {
           p.name = name.trim();
           p.species = species.trim() || "Unknown species";
           p.heroPhoto = heroPhoto;
+          // dev-note: editing a legacy/seeded plant (room/light null) backfills
+          // both to the picker's default (ROOMS[0]/LIGHTS[1]) on any save, since
+          // the pill picker has no "unset" state — a deliberate tradeoff, not a
+          // bug.
           p.room = room;
           p.light = light;
         });
