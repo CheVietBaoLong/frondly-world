@@ -14,6 +14,7 @@ import {
   type RoomOption,
   type LightOption,
 } from "@/components/room-light-picker";
+import { deletePhoto, persistPhoto } from "@/lib/photo-storage";
 import { tokens } from "@/constants/tokens";
 import { database } from "@/db";
 import { Plant } from "@/db/models/Plant";
@@ -67,12 +68,14 @@ export default function EditPlant() {
     if (!name.trim() || saving) return;
     setSaving(true);
     try {
+      const plant = await database.get<Plant>("plants").find(id);
+      const oldPhoto = plant.heroPhoto;
+      const newPhoto = heroPhoto ? await persistPhoto(heroPhoto) : null;
       await database.write(async () => {
-        const plant = await database.get<Plant>("plants").find(id);
         await plant.update((p) => {
           p.name = name.trim();
           p.species = species.trim() || "Unknown species";
-          p.heroPhoto = heroPhoto;
+          p.heroPhoto = newPhoto;
           // dev-note: editing a legacy/seeded plant (room/light null) backfills
           // both to the picker's default (ROOMS[0]/LIGHTS[1]) on any save, since
           // the pill picker has no "unset" state — a deliberate tradeoff, not a
@@ -81,6 +84,7 @@ export default function EditPlant() {
           p.light = light;
         });
       });
+      if (oldPhoto && oldPhoto !== newPhoto) await deletePhoto(oldPhoto);
       router.back();
     } catch (e) {
       console.error("edit save failed:", e);
