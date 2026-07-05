@@ -38,7 +38,7 @@ migration plan (`docs/react-native-migration-design.md`).
                                           │ │   schedule, record_diagnosis  │
                                           │ ├─ POST /forage/identify        │
                                           │ │  (GeminiVision + PNW dataset) │
-                                          │ └─ POST /plantcare/            │
+                                          │ └─ POST /plantcare/             │
                                           │    watering_schedule (PR #18)   │
                                           │ Stateless — persists nothing;   │
                                           │ all user data stays on-device.  │
@@ -68,27 +68,20 @@ migration plan (`docs/react-native-migration-design.md`).
 | **Agent-assisted plant identity** — photo → Gemini suggests name+species, prefills the editable fields on Edit + Add-manual; new `POST /plantcare/identify` (reuses the vision layer, no dataset gate); a photo picked on Edit also becomes the hero | PR #24 |
 | **Diagnose message thread** — follow-ups render as a scrollable user/assistant thread; each assistant reply carries its own diagnosis card, save-note button, and inline retry-on-error (concurrent sends guarded) | PR #25 |
 | **Room/Light persistence** — Add/Edit forms' Room and Light pickers now actually save (schema v4, `Plant.room`/`Plant.light`); shared `RoomLightPicker` component used by both screens; Plant Detail shows the saved value (e.g. "Living room · Bright") | PR #27 |
-| **Durable photo storage** — camera/picker photos are copied into durable app storage (`expo-file-system`'s new `File`/`Directory`/`Paths` API) before being saved, instead of the raw cache URI; shared `persistPhoto`/`deletePhoto` helper used by Add-manual, Edit (also cleans up the replaced photo), Diagnose, and Forage Find; one-time startup backfill migrates or nulls out existing rows | `frondly/durable-photo-storage` (local) |
+| **Durable photo storage** — camera/picker photos are copied into durable app storage (`expo-file-system`'s new `File`/`Directory`/`Paths` API) before being saved, instead of the raw cache URI; shared `persistPhoto`/`deletePhoto` helper used by Add-manual, Edit (also cleans up the replaced photo), Diagnose, and Forage Find; one-time startup backfill migrates or nulls out existing rows | PR #30 |
+| **Base URL config** — the backend base URL now lives in one shared `lib/config.ts` (`API_BASE`), read from the Expo-native `EXPO_PUBLIC_API_BASE` env var with a `localhost:8000` fallback; the four call sites (`lib/api.ts`, `lib/care.ts`, `lib/identify.ts`, `forage/api.ts`) import it. Physical devices set a LAN IP in gitignored `client/.env.local`; `client/.env.example` documents it | `frondly/base-url-config` (local) |
 | Backend: plantcare ADK agent + tools, forage identify, offline test suites (client jest 75, server 15) | — |
 
 ## Left for the app to fully work 🔨
 
-Rough priority order:
+Base URL config is DONE (see the Implemented table). The remaining shipping
+gaps now live in "Open questions on hold" below — auth + multi-device sync is
+the next real feature milestone, but it needs its own brainstorm/spec first.
 
-1. **Base URL config** — `localhost:8000` hardcoded in `lib/api.ts`,
-   `forage/api.ts`, and `lib/care.ts`; physical devices need a LAN IP
-   (env/EAS config).
-
-## Next milestone — Base URL config 🎯
-
-Durable photo storage is DONE — see the Implemented table
-(`frondly/durable-photo-storage`, spec
-`docs/superpowers/specs/2026-07-04-durable-photo-storage-design.md`).
-Remaining (top of "Left for the app to fully work," above):
-
-1. **Base URL config** — `localhost:8000` hardcoded in `lib/api.ts`,
-   `forage/api.ts`, and `lib/care.ts`; physical devices need a LAN IP
-   (env/EAS config).
+Base URL config follow-ups (deliberate): only the base URL is env-driven —
+there's no EAS build profile that bakes a production URL yet (no production
+backend exists to point at); the `localhost:8000` fallback still assumes the
+adb-reverse / simulator flow when the env var is unset.
 
 Durable photo storage follow-ups (deliberate, listed in this PR): no cleanup
 of a photo's durable file when its owning record (plant/observation/find) is

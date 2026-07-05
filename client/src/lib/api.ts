@@ -6,8 +6,7 @@
 // is consumed with XMLHttpRequest onprogress (the same native-networking path
 // forage/api.ts uses for uploads) and parsed as SSE by hand.
 //
-// dev-note: base URL hardcoded for local dev, same story as forage/api.ts.
-const API_BASE = "http://localhost:8000";
+import { API_BASE } from "./config";
 
 // The agents-dir *package folder* on the server (server/plantcare/), as listed
 // by GET /list-apps. NOT the agent's `name` field ("plant_care") — easy to mix

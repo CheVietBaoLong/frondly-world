@@ -1,10 +1,9 @@
 // Client for houseplant identification (server/main.py: POST /plantcare/identify).
 // Sibling of forage/api.ts — same local-dev base URL and XHR upload trick.
 //
-// dev-note: base URL hardcoded for local dev; shares forage/api.ts's deferred
-// env/EAS-config follow-up. XHR (not fetch) because RN 0.85's fetch rejects the
-// classic { uri } FormData file part.
-const API_BASE = "http://localhost:8000";
+// dev-note: XHR (not fetch) because RN 0.85's fetch rejects the classic
+// { uri } FormData file part.
+import { API_BASE } from "./config";
 
 export type PlantIdentity = {
   name: string;

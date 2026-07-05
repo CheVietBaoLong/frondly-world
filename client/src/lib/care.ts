@@ -1,4 +1,5 @@
 import type { ColorToken } from "@/constants/tokens";
+import { API_BASE } from "./config";
 
 // TS port of server/plantcare/tools/schedule.py's watering_schedule — pure,
 // offline fallback for when the server endpoint (Task 2, wired in Task 4) is
@@ -106,8 +107,6 @@ function daysBetween(fromIso: string, toIso: string): number {
   return Math.round((to - from) / 86_400_000);
 }
 
-// dev-note: base URL hardcoded for local dev, same story as forage/api.ts and lib/api.ts.
-const API_BASE = "http://localhost:8000";
 const FETCH_TIMEOUT_MS = 5_000;
 
 export async function fetchWateringSchedule(
