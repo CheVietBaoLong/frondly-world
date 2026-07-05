@@ -30,5 +30,18 @@ export const migrations = schemaMigrations({
         }),
       ],
     },
+    // v3 → v4: room/light captured on Add, previously discarded on save.
+    {
+      toVersion: 4,
+      steps: [
+        addColumns({
+          table: "plants",
+          columns: [
+            { name: "room", type: "string", isOptional: true },
+            { name: "light", type: "string", isOptional: true },
+          ],
+        }),
+      ],
+    },
   ],
 });

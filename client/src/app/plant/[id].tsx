@@ -81,6 +81,11 @@ export default function PlantDetail() {
           <Text className="font-body text-xs text-secondary" numberOfLines={1}>
             {vm.species}
           </Text>
+          {vm.roomLight ? (
+            <Text className="font-body text-xs text-secondary" numberOfLines={1}>
+              {vm.roomLight}
+            </Text>
+          ) : null}
         </Pressable>
         <Chip text={vm.chip.label} bg={vm.chip.bg} fg={vm.chip.fg} />
       </View>

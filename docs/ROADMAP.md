@@ -1,8 +1,8 @@
 # Frondly — Project Roadmap & Status
 
 **Updated:** 2026-07-04 (PRs #22 quick-fixes, #23 plant-detail, #24
-plant-identity all merged; diagnose message thread built on
-`frondly/diagnose-thread`, pending PR)
+plant-identity, #25 diagnose-thread, #26 weather-cf all merged; Room/Light
+persistence built on `frondly/room-light-persistence`, pending PR)
 
 One-page tracker: what's built, what's left for the app to fully work, and what's
 parked. Details live in the per-feature specs (`docs/*-spec.md`) and the
@@ -65,31 +65,31 @@ migration plan (`docs/react-native-migration-design.md`).
 | **Live garden score** — Home cards now re-render on observation inserts (observe the observations collection), so a fresh diagnosis updates the card, not just Plant Detail | PR #23 |
 | **Editable plant + journal note cards** — pencil → edit name/species; journal lists compact note cards opening a full-screen note view; never-watered plants show "Water when dry" not a dummy "Water in 7d" | PR #23 |
 | **Agent-assisted plant identity** — photo → Gemini suggests name+species, prefills the editable fields on Edit + Add-manual; new `POST /plantcare/identify` (reuses the vision layer, no dataset gate); a photo picked on Edit also becomes the hero | PR #24 |
-| **Diagnose message thread** — follow-ups render as a scrollable user/assistant thread; each assistant reply carries its own diagnosis card, save-note button, and inline retry-on-error (concurrent sends guarded) | `frondly/diagnose-thread` (local) |
-| Backend: plantcare ADK agent + tools, forage identify, offline test suites (client jest 62, server 15) | — |
+| **Diagnose message thread** — follow-ups render as a scrollable user/assistant thread; each assistant reply carries its own diagnosis card, save-note button, and inline retry-on-error (concurrent sends guarded) | PR #25 |
+| **Room/Light persistence** — Add/Edit forms' Room and Light pickers now actually save (schema v4, `Plant.room`/`Plant.light`); shared `RoomLightPicker` component used by both screens; Plant Detail shows the saved value (e.g. "Living room · Bright") | `frondly/room-light-persistence` (local) |
+| Backend: plantcare ADK agent + tools, forage identify, offline test suites (client jest 64, server 15) | — |
 
 ## Left for the app to fully work 🔨
 
 Rough priority order:
 
-1. **Room/Light persistence** — captured in Add Plant UI state, no columns on
-   the Plant model yet (needs schema v3).
-2. **Durable photo storage** — camera-cache URIs stored as-is for `heroPhoto`
+1. **Durable photo storage** — camera-cache URIs stored as-is for `heroPhoto`
    and diagnosis photos; migration plan calls for copying into app storage via
    `expo-file-system` (OS can evict cache).
-3. **Base URL config** — `localhost:8000` hardcoded in `lib/api.ts`,
+2. **Base URL config** — `localhost:8000` hardcoded in `lib/api.ts`,
    `forage/api.ts`, and `lib/care.ts`; physical devices need a LAN IP
    (env/EAS config).
 
-## Next milestone — Room/Light persistence 🎯
+## Next milestone — Durable photo storage 🎯
 
-Diagnose message thread is DONE — see the Implemented table
-(`frondly/diagnose-thread`, spec
-`docs/superpowers/specs/2026-07-04-diagnose-message-thread-design.md`).
+Room/Light persistence is DONE — see the Implemented table
+(`frondly/room-light-persistence`, spec
+`docs/superpowers/specs/2026-07-04-room-light-persistence-design.md`).
 Remaining (top of "Left for the app to fully work," above):
 
-1. **Room/Light persistence** — captured in Add Plant UI state
-   (`add/manual.tsx`), no columns on the Plant model yet (needs schema v3).
+1. **Durable photo storage** — camera-cache URIs stored as-is for `heroPhoto`
+   and diagnosis photos; migration plan calls for copying into app storage via
+   `expo-file-system` (OS can evict cache).
 
 Diagnose message thread follow-ups (deliberate): thread state is ephemeral
 (`useState` only, not persisted) — leaving the screen still ends the
