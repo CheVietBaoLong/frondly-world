@@ -38,6 +38,7 @@ import {
   setTurnText,
   type Turn,
 } from "@/lib/diagnose-turns";
+import { persistPhoto } from "@/lib/photo-storage";
 
 type Phase = "pick" | "sending" | "done" | "error";
 
@@ -90,6 +91,7 @@ export default function Diagnose() {
 
   async function saveObservation(d: Diagnosis) {
     const plant = await database.get<Plant>("plants").find(id);
+    const durablePhoto = photoUri ? await persistPhoto(photoUri) : null;
     await database.write(async () => {
       await database.get<Observation>("observations").create((o) => {
         o.plant.set(plant);
@@ -98,9 +100,7 @@ export default function Diagnose() {
         o.healthScore = d.healthScore;
         o.confidence = d.confidence;
         o.careSteps = d.careSteps;
-        // dev-note: camera-cache URI stored as-is; durable copy via
-        // expo-file-system is a deferred item shared with heroPhoto.
-        o.photo = photoUri;
+        o.photo = durablePhoto;
         o.date = new Date();
       });
     });

@@ -1,8 +1,9 @@
 # Frondly — Project Roadmap & Status
 
-**Updated:** 2026-07-04 (PRs #22 quick-fixes, #23 plant-detail, #24
-plant-identity, #25 diagnose-thread, #26 weather-cf all merged; Room/Light
-persistence built on `frondly/room-light-persistence`, pending PR)
+**Updated:** 2026-07-05 (PRs #22 quick-fixes, #23 plant-detail, #24
+plant-identity, #25 diagnose-thread, #26 weather-cf, #27 room-light-persistence
+all merged; Durable photo storage built on `frondly/durable-photo-storage`,
+pending PR)
 
 One-page tracker: what's built, what's left for the app to fully work, and what's
 parked. Details live in the per-feature specs (`docs/*-spec.md`) and the
@@ -66,30 +67,40 @@ migration plan (`docs/react-native-migration-design.md`).
 | **Editable plant + journal note cards** — pencil → edit name/species; journal lists compact note cards opening a full-screen note view; never-watered plants show "Water when dry" not a dummy "Water in 7d" | PR #23 |
 | **Agent-assisted plant identity** — photo → Gemini suggests name+species, prefills the editable fields on Edit + Add-manual; new `POST /plantcare/identify` (reuses the vision layer, no dataset gate); a photo picked on Edit also becomes the hero | PR #24 |
 | **Diagnose message thread** — follow-ups render as a scrollable user/assistant thread; each assistant reply carries its own diagnosis card, save-note button, and inline retry-on-error (concurrent sends guarded) | PR #25 |
-| **Room/Light persistence** — Add/Edit forms' Room and Light pickers now actually save (schema v4, `Plant.room`/`Plant.light`); shared `RoomLightPicker` component used by both screens; Plant Detail shows the saved value (e.g. "Living room · Bright") | `frondly/room-light-persistence` (local) |
-| Backend: plantcare ADK agent + tools, forage identify, offline test suites (client jest 64, server 15) | — |
+| **Room/Light persistence** — Add/Edit forms' Room and Light pickers now actually save (schema v4, `Plant.room`/`Plant.light`); shared `RoomLightPicker` component used by both screens; Plant Detail shows the saved value (e.g. "Living room · Bright") | PR #27 |
+| **Durable photo storage** — camera/picker photos are copied into durable app storage (`expo-file-system`'s new `File`/`Directory`/`Paths` API) before being saved, instead of the raw cache URI; shared `persistPhoto`/`deletePhoto` helper used by Add-manual, Edit (also cleans up the replaced photo), Diagnose, and Forage Find; one-time startup backfill migrates or nulls out existing rows | `frondly/durable-photo-storage` (local) |
+| Backend: plantcare ADK agent + tools, forage identify, offline test suites (client jest 75, server 15) | — |
 
 ## Left for the app to fully work 🔨
 
 Rough priority order:
 
-1. **Durable photo storage** — camera-cache URIs stored as-is for `heroPhoto`
-   and diagnosis photos; migration plan calls for copying into app storage via
-   `expo-file-system` (OS can evict cache).
-2. **Base URL config** — `localhost:8000` hardcoded in `lib/api.ts`,
+1. **Base URL config** — `localhost:8000` hardcoded in `lib/api.ts`,
    `forage/api.ts`, and `lib/care.ts`; physical devices need a LAN IP
    (env/EAS config).
 
-## Next milestone — Durable photo storage 🎯
+## Next milestone — Base URL config 🎯
 
-Room/Light persistence is DONE — see the Implemented table
-(`frondly/room-light-persistence`, spec
-`docs/superpowers/specs/2026-07-04-room-light-persistence-design.md`).
+Durable photo storage is DONE — see the Implemented table
+(`frondly/durable-photo-storage`, spec
+`docs/superpowers/specs/2026-07-04-durable-photo-storage-design.md`).
 Remaining (top of "Left for the app to fully work," above):
 
-1. **Durable photo storage** — camera-cache URIs stored as-is for `heroPhoto`
-   and diagnosis photos; migration plan calls for copying into app storage via
-   `expo-file-system` (OS can evict cache).
+1. **Base URL config** — `localhost:8000` hardcoded in `lib/api.ts`,
+   `forage/api.ts`, and `lib/care.ts`; physical devices need a LAN IP
+   (env/EAS config).
+
+Durable photo storage follow-ups (deliberate, listed in this PR): no cleanup
+of a photo's durable file when its owning record (plant/observation/find) is
+deleted — no delete-record feature exists anywhere in the app yet, so this is
+unreachable code; `extensionOf` doesn't strip query/fragment suffixes from a
+source URI (no current camera/picker call site produces those); `ensureDir`
+has a benign TOCTOU race on two concurrent first-saves (no concurrency
+requirement at this app's single-user scale); the backfill does 3 full-table
+scans + one write-transaction per changed row with no batching (fine at a
+personal-garden scale); manual simulator verification (add/edit a plant's
+photo, confirm it persists across a simulated cache clear) still pending —
+no simulator available in this environment, same as the prior two branches.
 
 Diagnose message thread follow-ups (deliberate): thread state is ephemeral
 (`useState` only, not persisted) — leaving the screen still ends the

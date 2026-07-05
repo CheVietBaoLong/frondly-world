@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { database } from "@/db";
 import { Plant } from "@/db/models/Plant";
 import { tokens } from "@/constants/tokens";
+import { persistPhoto } from "@/lib/photo-storage";
 import { IdentifyButton } from "@/components/identify-button";
 import {
   RoomLightPicker,
@@ -46,6 +47,7 @@ export default function AddManual() {
     if (!name.trim() || saving) return;
     setSaving(true);
     try {
+      const durablePhoto = photoUri ? await persistPhoto(photoUri) : null;
       await database.write(async () => {
         await database.get<Plant>("plants").create((plant) => {
           plant.name = name.trim();
@@ -53,7 +55,7 @@ export default function AddManual() {
           plant.dateAdded = new Date();
           plant.latitude = null;
           plant.longitude = null;
-          plant.heroPhoto = photoUri;
+          plant.heroPhoto = durablePhoto;
           plant.room = room;
           plant.light = light;
         });

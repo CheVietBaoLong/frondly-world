@@ -15,17 +15,19 @@ import {
 import { tokens } from "@/constants/tokens";
 import { database } from "@/db";
 import { Find } from "@/db/models/Find";
+import { persistPhoto } from "@/lib/photo-storage";
 import { identifyPhoto, type ForageResult as ForageResultType } from "@/forage/api";
 
 // Persist an identification as a saved Find (a durable, offline snapshot).
 async function saveFind(result: ForageResultType, photo?: string) {
+  const durablePhoto = photo ? await persistPhoto(photo) : null;
   await database.write(async () => {
     await database.get<Find>("finds").create((f) => {
       f.commonName = result.name ?? null;
       f.scientificName = result.scientific_name ?? null;
       f.state = result.state;
       f.confidence = result.confidence;
-      f.photo = photo ?? null;
+      f.photo = durablePhoto;
       f.result = result;
       f.savedAt = new Date();
     });

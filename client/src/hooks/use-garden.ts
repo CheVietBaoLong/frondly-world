@@ -6,6 +6,7 @@ import { database } from "@/db";
 import { chipForScore } from "@/db/health";
 import type { Plant } from "@/db/models/Plant";
 import { seedSampleGardenIfEmpty } from "@/db/seed";
+import { backfillPhotosOnce } from "@/db/photo-backfill";
 
 export type PlantVM = {
   id: string;
@@ -58,6 +59,7 @@ export function useGarden(): { plants: PlantVM[]; loading: boolean } {
     let cancelled = false;
 
     seedSampleGardenIfEmpty(database).catch((e) => console.error("garden seed failed:", e));
+    backfillPhotosOnce(database).catch((e) => console.error("photo backfill failed:", e));
 
     const reload = () => {
       database
