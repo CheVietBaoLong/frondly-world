@@ -24,6 +24,7 @@ export type PlantDetailVM = {
   lastWatered: Date | null;
   dateAdded: Date;
   heroPhoto: string | null;
+  roomLight: string | null;
   score: number | null;
   chip: { label: string; bg: ColorToken; fg: ColorToken };
   vine: VinePoint[];
@@ -39,6 +40,10 @@ const titleOf = (note: string) =>
     .find((l) => l.trim())
     ?.trim() ?? "Note";
 
+// "Living room · Bright", "Bright" if only one is set, null if neither.
+const roomLightLine = (plant: Plant): string | null =>
+  [plant.room, plant.light].filter((v): v is string => !!v).join(" · ") || null;
+
 function buildVM(plant: Plant, obs: Observation[]): PlantDetailVM {
   const scored = obs.filter((o) => o.healthScore != null);
   const score = scored.length ? scored[scored.length - 1].healthScore : null;
@@ -48,6 +53,7 @@ function buildVM(plant: Plant, obs: Observation[]): PlantDetailVM {
     lastWatered: plant.lastWatered,
     dateAdded: plant.dateAdded,
     heroPhoto: plant.heroPhoto,
+    roomLight: roomLightLine(plant),
     score,
     chip: chipForScore(score),
     vine: scored.map((o, i) => ({
