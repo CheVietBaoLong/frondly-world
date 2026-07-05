@@ -7,58 +7,11 @@ import { Observation } from "../models/Observation";
 import { Find } from "../models/Find";
 import { backfillPhotosOnce } from "../photo-backfill";
 import type { ForageResult } from "../../forage/api";
+import { mockFs } from "../../test-support/expo-file-system-mock";
 
-jest.mock("expo-file-system", () => {
-  const fs = new Set<string>();
-
-  function partUri(part: unknown): string {
-    return typeof part === "string" ? part : (part as { uri: string }).uri;
-  }
-
-  class MockFile {
-    uri: string;
-    constructor(...parts: unknown[]) {
-      this.uri = parts.map(partUri).join("/");
-    }
-    get exists() {
-      return fs.has(this.uri);
-    }
-    create() {
-      fs.add(this.uri);
-    }
-    async copy(dest: MockFile) {
-      fs.add(dest.uri);
-    }
-    async delete() {
-      if (!fs.has(this.uri)) throw new Error("ENOENT");
-      fs.delete(this.uri);
-    }
-  }
-
-  class MockDirectory {
-    uri: string;
-    constructor(...parts: unknown[]) {
-      this.uri = parts.map(partUri).join("/");
-    }
-    get exists() {
-      return fs.has(this.uri);
-    }
-    create() {
-      fs.add(this.uri);
-    }
-  }
-
-  return {
-    File: MockFile,
-    Directory: MockDirectory,
-    Paths: { document: { uri: "file:///doc" } },
-    __fs: fs,
-  };
-});
-
-function mockFs(): Set<string> {
-  return (jest.requireMock("expo-file-system") as { __fs: Set<string> }).__fs;
-}
+jest.mock("expo-file-system", () =>
+  require("../../test-support/expo-file-system-mock").createExpoFileSystemMock()
+);
 
 function makeDb() {
   const adapter = new LokiJSAdapter({
