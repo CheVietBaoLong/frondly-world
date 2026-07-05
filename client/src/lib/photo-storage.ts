@@ -13,7 +13,7 @@ function extensionOf(uri: string): string {
 
 // True if `uri` already lives inside our durable photos directory.
 export function isDurablePhoto(uri: string): boolean {
-  return uri.startsWith(photosDir.uri);
+  return uri.startsWith(`${photosDir.uri}/`);
 }
 
 // Copies a camera/picker cache URI into durable app storage and returns the

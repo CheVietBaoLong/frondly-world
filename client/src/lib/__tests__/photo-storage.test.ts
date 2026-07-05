@@ -81,6 +81,12 @@ describe("persistPhoto", () => {
   });
 });
 
+describe("isDurablePhoto", () => {
+  it("does not treat a sibling directory sharing the durable dir's string prefix as durable", () => {
+    expect(isDurablePhoto("file:///doc/photosArchive/evil.jpg")).toBe(false);
+  });
+});
+
 describe("deletePhoto", () => {
   it("no-ops for null", async () => {
     await expect(deletePhoto(null)).resolves.toBeUndefined();
