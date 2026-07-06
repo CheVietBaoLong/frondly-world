@@ -39,6 +39,8 @@ describe("snapshot round-trip", () => {
   it("serializes records to basenames and restores them with new local URIs, preserving ids and plant links", async () => {
     const db = makeDb();
     let plantId = "";
+    let obsId = "";
+    const careSteps = ["Water weekly", "Bright indirect light"];
     await db.write(async () => {
       const p = await db.get<Plant>("plants").create((r) => {
         r.name = "Monstera";
@@ -47,12 +49,14 @@ describe("snapshot round-trip", () => {
         r.heroPhoto = "file:///doc/photos/hero.jpg";
       });
       plantId = p.id;
-      await db.get<Observation>("observations").create((r) => {
+      const o = await db.get<Observation>("observations").create((r) => {
         r._raw.plant_id = p.id;
         r.date = new Date(2000);
         r.note = "New leaf";
         r.photo = "file:///doc/photos/obs.jpg";
+        r.careSteps = careSteps;
       });
+      obsId = o.id;
       await db.get<Find>("finds").create((r) => {
         r.state = "verified_edible";
         r.confidence = 0.9;
@@ -67,7 +71,9 @@ describe("snapshot round-trip", () => {
     expect(snap.plants[0].heroPhoto).toBe("hero.jpg"); // collapsed to basename
     expect(snap.observations[0].photo).toBe("obs.jpg");
     expect(snap.observations[0].plantId).toBe(plantId);
+    expect(snap.observations[0].careSteps).toEqual(careSteps);
     expect(snap.finds[0].photo).toBeNull();
+    expect(snap.finds[0].result).toEqual(SAMPLE_RESULT);
 
     // fresh DB, restore with a rewrite map
     const db2 = makeDb();
@@ -83,6 +89,12 @@ describe("snapshot round-trip", () => {
     const obs = await db2.get<Observation>("observations").query().fetch();
     expect(obs[0]._raw.plant_id).toBe(plantId); // link intact
     expect(obs[0].photo).toBe("file:///doc/photos/NEW-obs.jpg");
+    expect(obs[0].id).toBe(obsId); // observation's own id preserved
+    expect(obs[0].careSteps).toEqual(careSteps); // @json round-trip intact
+
+    const finds = await db2.get<Find>("finds").query().fetch();
+    expect(finds).toHaveLength(1);
+    expect(finds[0].result).toEqual(SAMPLE_RESULT); // @json round-trip intact
   });
 
   it("nulls a photo whose basename is missing from the rewrite map", async () => {
@@ -114,5 +126,27 @@ describe("snapshot round-trip", () => {
     const emptySnap = { version: SNAPSHOT_VERSION, plants: [], observations: [], finds: [] };
     await applySnapshot(db, emptySnap, {});
     expect(await db.get<Plant>("plants").query().fetchCount()).toBe(0);
+  });
+
+  it("rejects a snapshot whose version is newer than this build supports", async () => {
+    const db = makeDb();
+    await db.write(async () => {
+      await db.get<Plant>("plants").create((r) => {
+        r.name = "Existing";
+        r.species = "s";
+        r.dateAdded = new Date(1);
+      });
+    });
+    const futureSnap = {
+      version: SNAPSHOT_VERSION + 1,
+      plants: [],
+      observations: [],
+      finds: [],
+    };
+    await expect(applySnapshot(db, futureSnap, {})).rejects.toThrow(
+      /Cannot restore snapshot version/
+    );
+    // the guard fires before any destructive write — pre-existing data survives
+    expect(await db.get<Plant>("plants").query().fetchCount()).toBe(1);
   });
 });

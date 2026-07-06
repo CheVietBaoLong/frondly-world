@@ -107,6 +107,12 @@ export async function applySnapshot(
   snap: Snapshot,
   photoUriByBasename: Record<string, string>
 ): Promise<void> {
+  if (snap.version > SNAPSHOT_VERSION) {
+    throw new Error(
+      `Cannot restore snapshot version ${snap.version}: this app supports up to ${SNAPSHOT_VERSION}. Update the app to restore this backup.`
+    );
+  }
+
   const rewrite = (name: string | null): string | null =>
     name ? (photoUriByBasename[name] ?? null) : null;
 
