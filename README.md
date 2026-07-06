@@ -18,7 +18,7 @@ _Snap a photo → get an agent diagnosis & care plan → watch each plant thrive
 [![Google ADK](https://img.shields.io/badge/Google%20ADK-2.3-4285F4?style=flat&logo=google&logoColor=white)](https://google.github.io/adk-docs/)
 [![Gemini](https://img.shields.io/badge/Gemini-2.5-8E75B2?style=flat&logo=googlegemini&logoColor=white)](https://ai.google.dev/)
 [![Firebase](https://img.shields.io/badge/Firebase-Auth%20+%20Firestore-FFCA28?style=flat&logo=firebase&logoColor=black)](https://firebase.google.com/)
-[![Tests](https://img.shields.io/badge/tests-88%20passing-3fb950?style=flat&logo=jest&logoColor=white)](#-testing)
+[![Tests](https://img.shields.io/badge/tests-89%20passing-3fb950?style=flat&logo=jest&logoColor=white)](#-testing)
 [![Kaggle Capstone](https://img.shields.io/badge/Kaggle-AI%20Agents%20Intensive%20Capstone-20BEFF?style=flat&logo=kaggle&logoColor=white)](https://www.kaggle.com/)
 [![Track](https://img.shields.io/badge/Track-Concierge%20Agents-6f42c1?style=flat)](#-kaggle-capstone-context)
 
@@ -170,7 +170,7 @@ Create a Firebase project (free Spark plan) → enable **Authentication ▸ Emai
 ## 🧪 Testing
 
 ```bash
-cd client && yarn jest --forceExit    # 88 tests (14 suites)
+cd client && yarn jest --forceExit    # 89 tests (14 suites)
 cd server && uv run pytest            # backend tool + endpoint tests
 ```
 

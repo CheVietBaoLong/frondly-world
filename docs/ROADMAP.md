@@ -6,8 +6,7 @@ all merged; Durable photo storage built on `frondly/durable-photo-storage`,
 pending PR)
 
 One-page tracker: what's built, what's left for the app to fully work, and what's
-parked. Details live in the per-feature specs (`docs/*-spec.md`) and the
-migration plan (`docs/react-native-migration-design.md`).
+parked. Details live in the per-feature specs (`docs/*-spec.md`).
 
 ## System sketch
 
