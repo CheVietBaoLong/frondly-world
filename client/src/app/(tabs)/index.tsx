@@ -43,9 +43,11 @@ export default function Garden() {
             {plants.length} plants · {needCare.length} need care today
           </Text>
         </View>
-        <View className="h-10 w-10 items-center justify-center rounded-full bg-forest">
-          <Text className="font-display text-base text-citron">V</Text>
-        </View>
+        <Link href="/account" asChild>
+          <Pressable className="h-10 w-10 items-center justify-center rounded-full bg-forest">
+            <Text className="font-display text-base text-citron">V</Text>
+          </Pressable>
+        </Link>
       </View>
 
       <AssistantCard
