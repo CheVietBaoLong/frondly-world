@@ -2,7 +2,7 @@ import { Pressable, Text, View } from "react-native";
 
 import { tokens } from "@/constants/tokens";
 
-export const ROOMS = ["Living room", "Bedroom", "Kitchen", "Office"] as const;
+export const ROOMS = ["Living room", "Bedroom", "Kitchen", "Office", "Outside"] as const;
 export const LIGHTS = ["Bright", "Medium", "Low"] as const;
 
 export type RoomOption = (typeof ROOMS)[number];
