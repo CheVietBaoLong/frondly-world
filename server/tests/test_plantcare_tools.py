@@ -1,10 +1,13 @@
 """Offline self-checks for plant-care tools. Run: python tests/test_plantcare_tools.py"""
+import inspect
+import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from plantcare.tools.decline import assess_decline
+from plantcare.tools.record import record_diagnosis
 from plantcare.tools.schedule import watering_schedule
 
 
@@ -52,6 +55,14 @@ def test_schedule_unknown_species_default_and_no_history():
     assert r["next_water_date"] is None
 
 
+def test_schedule_matches_golden_fixture():
+    fixture_path = Path(__file__).resolve().parent.parent.parent / "fixtures" / "watering-schedule.golden.json"
+    cases = json.loads(fixture_path.read_text())
+    for case in cases:
+        r = watering_schedule(case["species"], {"precip_7d": case["precip_7d"]}, case["history"])
+        assert r == case["expected"], (case, r)
+
+
 import plantcare.tools.weather as weather_mod
 from plantcare.tools.weather import get_weather
 
@@ -79,6 +90,27 @@ def test_get_weather_parses_and_sums_precip():
     assert r["temp"] == 18.5 and r["humidity"] == 72, r
     assert r["precip_7d"] == 11.0, r          # sum of first 7
     assert r["forecast"] == [4, 0, 1], r       # remaining days
+
+
+def test_record_diagnosis_returns_confirmation():
+    assert (
+        record_diagnosis(
+            "overwatering", "medium", 55, 0.85, ["let soil dry", "check drainage"]
+        )
+        == "recorded"
+    )
+
+
+def test_record_diagnosis_signature_matches_client_contract():
+    # The RN client reads these exact snake_case arg names from the
+    # functionCall event — order and names are a wire contract.
+    assert list(inspect.signature(record_diagnosis).parameters) == [
+        "problem",
+        "severity",
+        "health_score",
+        "confidence",
+        "care_steps",
+    ]
 
 
 if __name__ == "__main__":

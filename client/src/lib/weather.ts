@@ -10,7 +10,12 @@ export type Weather = {
   label: string;
   icon: WeatherIcon;
   tempF: number;
+  tempC: number;
 };
+
+export function formatTemp(weather: Pick<Weather, "tempF" | "tempC">): string {
+  return `${Math.round(weather.tempF)}°F / ${Math.round(weather.tempC)}°C`;
+}
 
 // WMO weather interpretation codes (Open-Meteo's `weather_code`) bucketed to
 // the ~7 conditions the card can express. https://open-meteo.com/en/docs
@@ -45,7 +50,6 @@ export async function getWeather(): Promise<Weather | null> {
     const city = place?.city;
     if (!city) return null;
 
-    // dev-note: Fahrenheit hardcoded — derive from device locale if non-US users matter.
     const lat = Math.round(latitude * 100) / 100;
     const lon = Math.round(longitude * 100) / 100;
     const res = await fetch(
@@ -60,8 +64,9 @@ export async function getWeather(): Promise<Weather | null> {
     const code = data.current?.weather_code;
     const tempF = data.current?.temperature_2m;
     if (code == null || tempF == null) return null;
+    const tempC = ((tempF - 32) * 5) / 9;
 
-    return { city, tempF, ...describeWmoCode(code) };
+    return { city, tempF, tempC, ...describeWmoCode(code) };
   } catch {
     return null;
   }

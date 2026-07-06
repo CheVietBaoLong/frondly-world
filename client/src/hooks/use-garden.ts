@@ -6,10 +6,14 @@ import { database } from "@/db";
 import { chipForScore } from "@/db/health";
 import type { Plant } from "@/db/models/Plant";
 import { seedSampleGardenIfEmpty } from "@/db/seed";
+import { backfillPhotosOnce } from "@/db/photo-backfill";
 
 export type PlantVM = {
   id: string;
   name: string;
+  species: string;
+  lastWatered: Date | null;
+  dateAdded: Date;
   statusLine: string;
   score: number | null;
   needsAttention: boolean;
@@ -24,6 +28,9 @@ async function toVM(plant: Plant): Promise<PlantVM> {
   return {
     id: plant.id,
     name: plant.name,
+    species: plant.species,
+    lastWatered: plant.lastWatered,
+    dateAdded: plant.dateAdded,
     statusLine: await plant.statusLine(),
     score,
     needsAttention: await plant.needsAttention(),
@@ -33,11 +40,15 @@ async function toVM(plant: Plant): Promise<PlantVM> {
 }
 
 // Reactive garden view-models, newest plant first. Ports GardenHomeView's
-// @Query(Plant): subscribes to the plants collection and re-resolves VMs on
-// every emission. Seeds sample data on first run (idempotent).
-// dev-note: observe() re-emits on plant add/remove, not on observation inserts
-// (which change a score) — fine for slice-1 seed data; swap to observeWithColumns
-// once the capture flow writes observations live.
+// @Query(Plant): re-resolves the VMs whenever the garden changes. Seeds sample
+// data on first run (idempotent).
+// A plant's card shows its health score / status line, both derived from its
+// observations — but observe() on the plants query only fires on plant
+// add/remove, NOT on observation inserts. So we also subscribe to the
+// observations collection; a new diagnosis (e.g. health 95) then updates the
+// home card live, matching Plant Detail.
+// dev-note: on any change we re-query + re-resolve all plants — simplest correct
+// approach at garden scale; batch/incrementally if the garden ever gets large.
 // dev-note: slice-1 bootstrap seeds here; move to root app init when other
 // screens also write to the DB.
 export function useGarden(): { plants: PlantVM[]; loading: boolean } {
@@ -48,28 +59,33 @@ export function useGarden(): { plants: PlantVM[]; loading: boolean } {
     let cancelled = false;
 
     seedSampleGardenIfEmpty(database).catch((e) => console.error("garden seed failed:", e));
+    backfillPhotosOnce(database).catch((e) => console.error("photo backfill failed:", e));
 
-    const sub = database
-      .get<Plant>("plants")
-      .query(Q.sortBy("date_added", Q.desc))
-      .observe()
-      .subscribe((rows) => {
-        Promise.all(rows.map(toVM))
-          .then((vms) => {
-            if (cancelled) return;
-            setPlants(vms);
-            setLoading(false);
-          })
-          .catch((e) => {
-            if (cancelled) return;
-            console.error("garden load failed:", e);
-            setLoading(false); // clear the spinner instead of hanging on it
-          });
-      });
+    const reload = () => {
+      database
+        .get<Plant>("plants")
+        .query(Q.sortBy("date_added", Q.desc))
+        .fetch()
+        .then((rows) => Promise.all(rows.map(toVM)))
+        .then((vms) => {
+          if (cancelled) return;
+          setPlants(vms);
+          setLoading(false);
+        })
+        .catch((e) => {
+          if (cancelled) return;
+          console.error("garden load failed:", e);
+          setLoading(false); // clear the spinner instead of hanging on it
+        });
+    };
+
+    const plantsSub = database.get<Plant>("plants").query().observe().subscribe(reload);
+    const obsSub = database.get("observations").query().observe().subscribe(reload);
 
     return () => {
       cancelled = true;
-      sub.unsubscribe();
+      plantsSub.unsubscribe();
+      obsSub.unsubscribe();
     };
   }, []);
 

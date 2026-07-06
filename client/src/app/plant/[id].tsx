@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AssistantCard } from "@/components/ui/assistant-card";
@@ -9,17 +9,66 @@ import { Chip } from "@/components/ui/chip";
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { SectionLabel } from "@/components/ui/section-label";
 import { tokens } from "@/constants/tokens";
+import { database } from "@/db";
+import { Plant } from "@/db/models/Plant";
 import { usePlantDetail, type VinePoint } from "@/hooks/use-plant-detail";
+import { useRecentRainfall } from "@/hooks/use-recent-rainfall";
+import { useWateringSchedules } from "@/hooks/use-watering-schedules";
+import { scheduleStatus } from "@/lib/care";
+import { deletePlant } from "@/lib/garden-delete";
+
+// Pixel-art fallback for plants without a captured photo.
+const PLANT_PLACEHOLDER = require("@/assets/images/plant-placeholder.jpeg");
+
+async function markWatered(plantId: string) {
+  await database.write(async () => {
+    const plant = await database.get<Plant>("plants").find(plantId);
+    await plant.update((p) => {
+      p.lastWatered = new Date();
+    });
+  });
+}
+
+// Confirm before permanently removing a plant, its journal, and its photos.
+function confirmDeletePlant(plantId: string, name: string) {
+  Alert.alert(
+    "Delete plant?",
+    `"${name}" and its entire journal will be permanently removed. This can't be undone.`,
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () =>
+          deletePlant(database, plantId)
+            .then(() => router.back())
+            .catch((e) => console.error("delete plant failed:", e)),
+      },
+    ]
+  );
+}
 
 // Plant Detail — ports PlantDetailView. Pushed over the tabs from a Garden card.
 export default function PlantDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const vm = usePlantDetail(id);
+  const precip7d = useRecentRainfall();
+  const schedules = useWateringSchedules(
+    vm ? [{ id, species: vm.species, lastWatered: vm.lastWatered, dateAdded: vm.dateAdded }] : [],
+    precip7d
+  );
 
   if (!vm) {
     return <View className="flex-1 bg-paper" style={{ paddingTop: insets.top }} />;
   }
+
+  const schedule = schedules.get(id) ?? null;
+  const status = scheduleStatus(
+    schedule?.next_water_date ?? null,
+    undefined,
+    vm.lastWatered == null
+  );
 
   return (
     <ScrollView
@@ -39,26 +88,35 @@ export default function PlantDetail() {
         >
           <Ionicons name="chevron-back" size={16} color={tokens.forest} />
         </Pressable>
-        <View className="flex-1">
-          <Text className="font-display text-[22px] text-forest" numberOfLines={1}>
-            {vm.name}
-          </Text>
+        <Pressable
+          className="flex-1"
+          onPress={() => router.push({ pathname: "/plant/edit", params: { id } })}
+        >
+          <View className="flex-row items-center gap-1.5">
+            <Text className="font-display text-[22px] text-forest" numberOfLines={1}>
+              {vm.name}
+            </Text>
+            <Ionicons name="pencil" size={20} color={tokens.forest} />
+          </View>
           <Text className="font-body text-xs text-secondary" numberOfLines={1}>
             {vm.species}
           </Text>
-        </View>
+          {vm.roomLight ? (
+            <Text className="font-body text-xs text-secondary" numberOfLines={1}>
+              {vm.roomLight}
+            </Text>
+          ) : null}
+        </Pressable>
         <Chip text={vm.chip.label} bg={vm.chip.bg} fg={vm.chip.fg} />
       </View>
 
       {/* hero */}
       <View className="h-[150px] overflow-hidden rounded-[20px] bg-forest">
-        {vm.heroPhoto ? (
-          <Image source={{ uri: vm.heroPhoto }} style={{ flex: 1 }} contentFit="cover" />
-        ) : (
-          <View className="flex-1 items-center justify-center">
-            <Ionicons name="leaf" size={40} color={tokens.sage} />
-          </View>
-        )}
+        <Image
+          source={vm.heroPhoto ? { uri: vm.heroPhoto } : PLANT_PLACEHOLDER}
+          style={{ flex: 1 }}
+          contentFit="cover"
+        />
         {vm.score != null ? (
           <View className="absolute left-3 top-3">
             <ScoreBadge score={vm.score} />
@@ -77,38 +135,65 @@ export default function PlantDetail() {
         <GrowthVine points={vm.vine} />
       </View>
 
-      {/* diagnosis */}
-      {vm.latestNote ? (
-        <View className="gap-2 rounded-[18px] border border-border bg-surface p-3.5">
-          <SectionLabel text="DIAGNOSIS" />
-          <Text className="font-body text-sm text-forest">{vm.latestNote}</Text>
-          {vm.careSteps.map((step) => (
-            <View key={step} className="flex-row items-center gap-1.5">
-              <Ionicons name="checkmark-circle" size={13} color={tokens.secondary} />
-              <Text className="flex-1 font-body text-xs text-secondary">{step}</Text>
-            </View>
+      {/* notes — compact cards, tap to read the full entry */}
+      {vm.notes.length > 0 ? (
+        <View className="gap-2.5">
+          <SectionLabel text="NOTES" />
+          {vm.notes.map((n) => (
+            <Pressable
+              key={n.id}
+              onPress={() =>
+                router.push({ pathname: "/plant/note/[noteId]", params: { noteId: n.id } })
+              }
+              className="gap-1 rounded-[16px] border border-border bg-surface p-3.5"
+            >
+              <View className="flex-row items-center justify-between">
+                <Text className="font-body text-[11px] uppercase text-secondary">{n.date}</Text>
+                {n.healthScore != null ? (
+                  <Chip text={`Health ${n.healthScore}`} bg="mintBg" fg="leafText" />
+                ) : null}
+              </View>
+              <Text className="font-display text-[15px] text-forest" numberOfLines={1}>
+                {n.title}
+              </Text>
+            </Pressable>
           ))}
-          {/* dev-note: static confidence — the agent doesn't emit one yet (api.ts deferred). */}
-          <Chip text="Confidence 94%" bg="mintBg" fg="leafText" />
         </View>
       ) : null}
 
       {/* next care + diagnose CTA */}
       <View className="gap-3">
-        {/* dev-note: static copy — live scheduling lands with api.ts (deferred). */}
+        {/* dev-note: static "in last 7d" copy, not a real countdown from
+            lastWatered — add a days-since-watered readout once that's wanted. */}
         <AssistantCard
           icon={<Ionicons name="water" size={18} color={tokens.forest} />}
-          title="Water Thursday"
-          detail="Heatwave coming Sat — I moved watering up 2 days."
+          title={vm.lastWatered ? "Watered in last 7d" : status.label}
+          detail={schedule?.reason ?? "Add a watering to start the schedule."}
         />
-        {/* dev-note: diagnose-with-photo flow ships with the capture feature; CTA is inert for now. */}
         <Pressable
-          disabled
-          className="flex-row items-center justify-center gap-2 rounded-[14px] bg-citron py-3.5 opacity-60"
+          onPress={() => markWatered(id).catch((e) => console.error("mark watered failed:", e))}
+          className="flex-row items-center justify-center gap-2 rounded-[14px] border border-border bg-surface py-3"
+        >
+          <Ionicons name="checkmark-circle-outline" size={16} color={tokens.leafText} />
+          <Text className="font-body text-[15px] font-semibold text-leafText">Mark watered</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push({ pathname: "/plant/diagnose", params: { id } })}
+          className="flex-row items-center justify-center gap-2 rounded-[14px] bg-citron py-3.5"
         >
           <Ionicons name="sparkles" size={16} color={tokens.forest} />
           <Text className="font-body text-[15px] font-semibold text-forest">
             Diagnose with a photo
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => confirmDeletePlant(id, vm.name)}
+          className="mt-1 flex-row items-center justify-center gap-2 rounded-[14px] border py-3"
+          style={{ borderColor: tokens.rust }}
+        >
+          <Ionicons name="trash-outline" size={16} color={tokens.rust} />
+          <Text className="font-body text-[15px] font-semibold" style={{ color: tokens.rust }}>
+            Delete plant
           </Text>
         </Pressable>
       </View>

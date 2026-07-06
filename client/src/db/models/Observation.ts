@@ -14,6 +14,7 @@ export class Observation extends Model {
   @field("note") note: string;
   @field("severity") severity: string | null;
   @field("health_score") healthScore: number | null;
+  @field("confidence") confidence: number | null;
   @field("photo") photo: string | null;
   @date("date") date: Date;
   @json("care_steps", sanitizeSteps) careSteps: string[];

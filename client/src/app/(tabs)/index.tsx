@@ -9,8 +9,13 @@ import { Chip } from "@/components/ui/chip";
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { SectionLabel } from "@/components/ui/section-label";
 import { tokens } from "@/constants/tokens";
+import { useAuth } from "@/lib/auth";
 import { useGarden, type PlantVM } from "@/hooks/use-garden";
 import { useWeather } from "@/hooks/use-weather";
+import { formatTemp } from "@/lib/weather";
+
+// Pixel-art fallback for plants without a captured photo.
+const PLANT_PLACEHOLDER = require("@/assets/images/plant-placeholder.jpeg");
 
 // Garden Home — ports GardenHomeView. Reactive list of the user's plants split
 // into Needs Attention / Thriving, with a conversational care card up top.
@@ -18,6 +23,7 @@ export default function Garden() {
   const insets = useSafeAreaInsets();
   const { plants } = useGarden();
   const weather = useWeather();
+  const { user } = useAuth();
   const needCare = plants.filter((p) => p.needsAttention);
   const thriving = plants.filter((p) => !p.needsAttention);
 
@@ -33,22 +39,29 @@ export default function Garden() {
     >
       <View className="flex-row items-start">
         <View className="flex-1">
-          <Text className="font-display text-[28px] text-forest">My Garden</Text>
+          <Text className="font-display text-[28px] text-forest">Leafy Pals</Text>
           <Text className="font-body text-xs text-secondary">
+            {weather ? `${weather.city} · ${formatTemp(weather)} · ` : ""}
             {plants.length} plants · {needCare.length} need care today
           </Text>
         </View>
-        <View className="h-10 w-10 items-center justify-center rounded-full bg-forest">
-          <Text className="font-display text-base text-citron">V</Text>
-        </View>
+        <Link href="/account" asChild>
+          <Pressable className="h-10 w-10 items-center justify-center rounded-full bg-forest">
+            {user?.email ? (
+              <Text className="font-display text-base text-citron">
+                {user.email[0].toUpperCase()}
+              </Text>
+            ) : (
+              <Ionicons name="person" size={16} color={tokens.citron} />
+            )}
+          </Pressable>
+        </Link>
       </View>
 
       <AssistantCard
         icon={<Ionicons name={weather?.icon ?? "sunny"} size={18} color={tokens.forest} />}
         title={
-          weather
-            ? `${weather.city} · ${Math.round(weather.tempF)}° · ${weather.label}`
-            : "Your garden"
+          weather ? `${weather.city} · ${formatTemp(weather)} · ${weather.label}` : "Your garden"
         }
         detail={
           needCare.length === 0
@@ -82,10 +95,12 @@ function PlantCard({ plant }: { plant: PlantVM }) {
     <Link href={{ pathname: "/plant/[id]", params: { id: plant.id } }} asChild>
       <Pressable className="w-[48%] rounded-[18px] border border-border bg-surface p-2.5">
         <View className="h-[116px] overflow-hidden rounded-[14px] bg-sage">
-          {/* dev-note: heroPhoto assumed to be a displayable URI; null until the capture flow ships. */}
-          {plant.heroPhoto ? (
-            <Image source={{ uri: plant.heroPhoto }} style={{ flex: 1 }} contentFit="cover" />
-          ) : null}
+          {/* dev-note: heroPhoto assumed to be a displayable URI; falls back to the pixel-art placeholder until a photo is captured. */}
+          <Image
+            source={plant.heroPhoto ? { uri: plant.heroPhoto } : PLANT_PLACEHOLDER}
+            style={{ flex: 1 }}
+            contentFit="cover"
+          />
           {plant.score != null ? (
             <View className="absolute left-2 top-2">
               <ScoreBadge score={plant.score} compact />

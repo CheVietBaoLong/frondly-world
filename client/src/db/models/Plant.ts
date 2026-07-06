@@ -17,11 +17,28 @@ export class Plant extends Model {
   @field("latitude") latitude: number | null;
   @field("longitude") longitude: number | null;
   @field("hero_photo") heroPhoto: string | null;
+  @field("room") room: string | null;
+  @field("light") light: string | null;
   @children("observations") observations: Query<Observation>;
 
   // oldest→newest, what the timeline + historyForBackend consume (ports Plant.timeline)
   private async timeline(): Promise<Observation[]> {
-    return this.observations.extend(Q.sortBy("date", Q.asc)).fetch();
+    const q = this.observations.extend(Q.sortBy("date", Q.asc));
+    try {
+      return await q.fetch();
+    } catch (e) {
+      // The JSI SQLite adapter can transiently desync its native record-ID
+      // cache from the JS cache ("...sent over the bridge, but it's not
+      // cached") — a documented upstream WatermelonDB/adapter bug (see
+      // node_modules/@nozbe/watermelondb Collection/RecordCache.js). It self-
+      // heals by clearing the native cache on throw, so a single retry (which
+      // then receives full raw records and rebuilds the JS cache) succeeds.
+      // dev-note: recovery for an upstream adapter bug; drop if WatermelonDB fixes it.
+      if (String((e as Error)?.message).includes("not cached")) {
+        return q.fetch();
+      }
+      throw e;
+    }
   }
 
   // latest recorded non-null health score (ports Plant.currentScore)

@@ -1,5 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
@@ -8,36 +9,55 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { database } from "@/db";
 import { Plant } from "@/db/models/Plant";
 import { tokens } from "@/constants/tokens";
-
-const ROOMS = ["Living room", "Bedroom", "Kitchen", "Office"] as const;
-const LIGHTS = ["Bright", "Medium", "Low"] as const;
-
-type RoomOption = (typeof ROOMS)[number];
-type LightOption = (typeof LIGHTS)[number];
+import { persistPhoto } from "@/lib/photo-storage";
+import { IdentifyButton } from "@/components/identify-button";
+import {
+  RoomLightPicker,
+  ROOMS,
+  LIGHTS,
+  type RoomOption,
+  type LightOption,
+} from "@/components/room-light-picker";
 
 export default function AddManual() {
   const insets = useSafeAreaInsets();
   const { photo } = useLocalSearchParams<{ photo?: string }>();
   const [name, setName] = useState("");
+  const [species, setSpecies] = useState("");
+  const [photoUri, setPhotoUri] = useState<string | null>(photo ?? null);
   const [room, setRoom] = useState<RoomOption>(ROOMS[0]);
   const [light, setLight] = useState<LightOption>(LIGHTS[1]);
   const [saving, setSaving] = useState(false);
 
-  // dev-note: room/light aren't on the Plant model/schema yet, so they're
-  // captured in the UI but not persisted. Add columns + a migration when
-  // those fields are actually needed downstream.
+  // Optional photo — pre-filled when arriving from the camera / "Choose from
+  // Photos" flows, or attached here via the picker.
+  async function pickPhoto() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.6,
+      allowsEditing: true,
+    });
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+    setPhotoUri(result.assets[0].uri);
+  }
+
   async function save() {
     if (!name.trim() || saving) return;
     setSaving(true);
     try {
+      const durablePhoto = photoUri ? await persistPhoto(photoUri) : null;
       await database.write(async () => {
         await database.get<Plant>("plants").create((plant) => {
           plant.name = name.trim();
-          plant.species = "Unknown species";
+          plant.species = species.trim() || "Unknown species";
           plant.dateAdded = new Date();
           plant.latitude = null;
           plant.longitude = null;
-          plant.heroPhoto = photo ?? null;
+          plant.heroPhoto = durablePhoto;
+          plant.room = room;
+          plant.light = light;
         });
       });
       router.replace("/");
@@ -73,15 +93,39 @@ export default function AddManual() {
         </View>
       </View>
 
-      {photo ? (
-        <View className="h-[190px] items-center justify-center overflow-hidden rounded-[20px] bg-stoneBg">
+      {photoUri ? (
+        <Pressable
+          onPress={pickPhoto}
+          className="h-[190px] items-center justify-center overflow-hidden rounded-[20px] bg-stoneBg"
+        >
           <Image
-            source={{ uri: photo }}
+            source={{ uri: photoUri }}
             style={{ width: "100%", height: "100%" }}
             contentFit="cover"
           />
-        </View>
-      ) : null}
+          <View className="absolute bottom-2 right-2 flex-row items-center gap-1 rounded-full bg-forest/80 px-3 py-1.5">
+            <Ionicons name="camera" size={13} color={tokens.white} />
+            <Text className="font-body text-xs text-white">Change</Text>
+          </View>
+        </Pressable>
+      ) : (
+        <Pressable
+          onPress={pickPhoto}
+          className="h-[130px] flex-row items-center justify-center gap-2 rounded-[20px] border border-dashed border-border bg-surface"
+        >
+          <Ionicons name="image-outline" size={20} color={tokens.secondary} />
+          <Text className="font-body text-[13px] text-secondary">Add a photo (optional)</Text>
+        </Pressable>
+      )}
+
+      <IdentifyButton
+        photoUri={photoUri}
+        onPhotoPicked={setPhotoUri}
+        onIdentified={({ name: n, scientificName }) => {
+          setName(n);
+          setSpecies(scientificName);
+        }}
+      />
 
       <View className="gap-4">
         <View>
@@ -97,52 +141,23 @@ export default function AddManual() {
         </View>
 
         <View>
-          <Text className="font-body text-[13px] text-secondary">Room</Text>
-          <View className="mt-2 flex-row flex-wrap gap-2">
-            {ROOMS.map((option) => (
-              <Pressable
-                key={option}
-                onPress={() => setRoom(option)}
-                className={
-                  option === room
-                    ? "rounded-full bg-forest px-4 py-3"
-                    : "rounded-full border border-border bg-surface px-4 py-3"
-                }
-              >
-                <Text
-                  className="font-body text-[13px]"
-                  style={{ color: option === room ? tokens.white : tokens.forest }}
-                >
-                  {option}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          <Text className="font-body text-[13px] text-secondary">Species</Text>
+          <TextInput
+            value={species}
+            onChangeText={setSpecies}
+            placeholder="Monstera deliciosa"
+            placeholderTextColor={tokens.secondary}
+            className="mt-2 rounded-[18px] border border-border bg-surface px-4 py-3 font-body text-[15px] text-forest"
+            autoCapitalize="words"
+          />
         </View>
 
-        <View>
-          <Text className="font-body text-[13px] text-secondary">Light</Text>
-          <View className="mt-2 flex-row items-center justify-between rounded-[18px] border border-border bg-paper p-2">
-            {LIGHTS.map((option) => (
-              <Pressable
-                key={option}
-                onPress={() => setLight(option)}
-                className={
-                  option === light
-                    ? "rounded-full bg-forest px-4 py-2"
-                    : "rounded-full bg-surface px-4 py-2"
-                }
-              >
-                <Text
-                  className="font-body text-[13px]"
-                  style={{ color: option === light ? tokens.white : tokens.forest }}
-                >
-                  {option}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
+        <RoomLightPicker
+          room={room}
+          light={light}
+          onRoomChange={setRoom}
+          onLightChange={setLight}
+        />
       </View>
 
       <Pressable

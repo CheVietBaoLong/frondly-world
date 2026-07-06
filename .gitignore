@@ -42,3 +42,8 @@ docs/superpowers/
 .claude/
 # Local-only Swift reference app (nested git repo, kept off the monorepo)
 green-ish-client/
+
+# ADK runtime session store (created when the agent server runs)
+.adk/
+
+frondly-world-firebase-adminsdk-fbsvc.json
