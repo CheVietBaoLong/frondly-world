@@ -3,13 +3,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Owner-only. Firestore denies any unmatched path by default, and rules are
+    // OR-evaluated (not first-match), so no catch-all deny is needed.
     match /backups/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
-    }
-    // Explicit deny-all: unmatched paths already default to deny in v2, but this
-    // guards against a future wildcard rule accidentally widening access.
-    match /{document=**} {
-      allow read, write: if false;
     }
   }
 }
