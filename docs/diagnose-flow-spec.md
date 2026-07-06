@@ -4,9 +4,8 @@
 
 Wire Plant Detail's inert "Diagnose with a photo" CTA to the FastAPI plantcare
 agent (Gemini via ADK): photo + plant context in, streamed reply out, diagnosis
-auto-saved as an `Observation`. This is the app's headline feature and the last
-big gap in the migration plan (`docs/react-native-migration-design.md`, "Data
-flow — Diagnose").
+auto-saved as an `Observation`. This is the app's headline feature and was the
+last big gap in the RN migration ("Data flow — Diagnose").
 
 ## Decisions (made during brainstorm)
 

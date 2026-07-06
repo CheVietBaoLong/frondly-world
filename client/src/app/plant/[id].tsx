@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AssistantCard } from "@/components/ui/assistant-card";
@@ -15,6 +15,7 @@ import { usePlantDetail, type VinePoint } from "@/hooks/use-plant-detail";
 import { useRecentRainfall } from "@/hooks/use-recent-rainfall";
 import { useWateringSchedules } from "@/hooks/use-watering-schedules";
 import { scheduleStatus } from "@/lib/care";
+import { deletePlant } from "@/lib/garden-delete";
 
 // Pixel-art fallback for plants without a captured photo.
 const PLANT_PLACEHOLDER = require("@/assets/images/plant-placeholder.jpeg");
@@ -26,6 +27,25 @@ async function markWatered(plantId: string) {
       p.lastWatered = new Date();
     });
   });
+}
+
+// Confirm before permanently removing a plant, its journal, and its photos.
+function confirmDeletePlant(plantId: string, name: string) {
+  Alert.alert(
+    "Delete plant?",
+    `"${name}" and its entire journal will be permanently removed. This can't be undone.`,
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () =>
+          deletePlant(database, plantId)
+            .then(() => router.back())
+            .catch((e) => console.error("delete plant failed:", e)),
+      },
+    ]
+  );
 }
 
 // Plant Detail — ports PlantDetailView. Pushed over the tabs from a Garden card.
@@ -164,6 +184,16 @@ export default function PlantDetail() {
           <Ionicons name="sparkles" size={16} color={tokens.forest} />
           <Text className="font-body text-[15px] font-semibold text-forest">
             Diagnose with a photo
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => confirmDeletePlant(id, vm.name)}
+          className="mt-1 flex-row items-center justify-center gap-2 rounded-[14px] border py-3"
+          style={{ borderColor: tokens.rust }}
+        >
+          <Ionicons name="trash-outline" size={16} color={tokens.rust} />
+          <Text className="font-body text-[15px] font-semibold" style={{ color: tokens.rust }}>
+            Delete plant
           </Text>
         </Pressable>
       </View>
