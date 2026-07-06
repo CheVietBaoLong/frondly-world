@@ -9,6 +9,7 @@ import { Chip } from "@/components/ui/chip";
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { SectionLabel } from "@/components/ui/section-label";
 import { tokens } from "@/constants/tokens";
+import { useAuth } from "@/lib/auth";
 import { useGarden, type PlantVM } from "@/hooks/use-garden";
 import { useWeather } from "@/hooks/use-weather";
 import { formatTemp } from "@/lib/weather";
@@ -22,6 +23,7 @@ export default function Garden() {
   const insets = useSafeAreaInsets();
   const { plants } = useGarden();
   const weather = useWeather();
+  const { user } = useAuth();
   const needCare = plants.filter((p) => p.needsAttention);
   const thriving = plants.filter((p) => !p.needsAttention);
 
@@ -45,7 +47,13 @@ export default function Garden() {
         </View>
         <Link href="/account" asChild>
           <Pressable className="h-10 w-10 items-center justify-center rounded-full bg-forest">
-            <Text className="font-display text-base text-citron">V</Text>
+            {user?.email ? (
+              <Text className="font-display text-base text-citron">
+                {user.email[0].toUpperCase()}
+              </Text>
+            ) : (
+              <Ionicons name="person" size={16} color={tokens.citron} />
+            )}
           </Pressable>
         </Link>
       </View>

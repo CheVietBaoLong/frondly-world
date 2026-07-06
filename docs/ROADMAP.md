@@ -70,16 +70,15 @@ migration plan (`docs/react-native-migration-design.md`).
 | **Room/Light persistence** — Add/Edit forms' Room and Light pickers now actually save (schema v4, `Plant.room`/`Plant.light`); shared `RoomLightPicker` component used by both screens; Plant Detail shows the saved value (e.g. "Living room · Bright") | PR #27 |
 | **Durable photo storage** — camera/picker photos are copied into durable app storage (`expo-file-system`'s new `File`/`Directory`/`Paths` API) before being saved, instead of the raw cache URI; shared `persistPhoto`/`deletePhoto` helper used by Add-manual, Edit (also cleans up the replaced photo), Diagnose, and Forage Find; one-time startup backfill migrates or nulls out existing rows | PR #30 |
 | **Base URL config** — the backend base URL now lives in one shared `lib/config.ts` (`API_BASE`), read from the Expo-native `EXPO_PUBLIC_API_BASE` env var with a `localhost:8000` fallback; the four call sites (`lib/api.ts`, `lib/care.ts`, `lib/identify.ts`, `forage/api.ts`) import it. Physical devices set a LAN IP in gitignored `client/.env.local`; `client/.env.example` documents it | `frondly/base-url-config` (local) |
-| **Account + cloud backup/restore** — Firebase email/password auth (`useAuth`, session persisted via AsyncStorage) gates a manual "back up now" / "restore from backup" flow on a new `/account` screen; backup serializes the garden (plants, observations, finds, and their photos) to `users/{uid}/snapshot.json` + `users/{uid}/photos/{basename}` in Firebase Storage, restore downloads and replaces the local WatermelonDB + re-persists photos; per-user isolation enforced by `client/firebase/storage.rules`; app stays local-first and fully usable signed-out (auth gates only backup/restore) | PR pending on `frondly/account-cloud-backup` |
+| **Account + cloud backup/restore** — Firebase email/password auth (`useAuth`, session persisted via AsyncStorage) gates a manual "back up now" / "restore from backup" flow on a new `/account` screen; backup serializes the garden metadata (plants, observations, finds) as a JSON string to a single Firestore doc `backups/{uid}`, restore reads it and replaces the local WatermelonDB; **metadata-only — photos stay device-local and come back null on restore** (Firestore is not a blob store, and Storage requires the paid Blaze plan); per-user isolation enforced by `client/firebase/firestore.rules`; app stays local-first and fully usable signed-out (auth gates only backup/restore) | PR pending on `frondly/account-cloud-backup` |
 | Backend: plantcare ADK agent + tools, forage identify, offline test suites (client jest 86, server 15) | — |
 
 **One-time human console setup** (required before Account + cloud backup/restore
 works on a device — the jest suites mock Firebase and need none of this):
 create a Firebase project (free Spark plan) → enable **Authentication ▸
-Email/Password** → enable **Storage** → copy the Web app config into
-`client/.env.local` as the `EXPO_PUBLIC_FIREBASE_*` keys → publish
-`client/firebase/storage.rules` (Firebase console ▸ Storage ▸ Rules, or
-`firebase deploy --only storage`).
+Email/Password** → create a **Firestore Database** → copy the Web app config
+into `client/.env.local` as the `EXPO_PUBLIC_FIREBASE_*` keys → publish
+`client/firebase/firestore.rules` (Firebase console ▸ Firestore Database ▸ Rules).
 
 ## Left for the app to fully work 🔨
 
@@ -142,7 +141,7 @@ way that renders down to a specific day count.
 
 - **Auth + multi-device sync** — addressed in its scoped-down form by Account
   + cloud backup/restore (Firebase email/password auth + manual backup/restore
-  to Firebase Storage; see the Implemented table). What's still open: this is
+  to Firestore; see the Implemented table). What's still open: this is
   backup/restore, not *live* sync — there's no conflict resolution and no
   automatic/background push. True live sync would still need WatermelonDB's
   own pull/push endpoints (FastAPI is the natural fit, but the server gains a

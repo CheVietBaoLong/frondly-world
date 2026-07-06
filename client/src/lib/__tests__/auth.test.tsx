@@ -8,7 +8,7 @@ const mockSignIn = jest.fn();
 const mockSignUp = jest.fn();
 const mockSignOut = jest.fn();
 
-jest.mock("../firebase", () => ({ auth: {}, storage: {} }));
+jest.mock("../firebase", () => ({ auth: {}, firestore: {} }));
 jest.mock("firebase/auth", () => ({
   onAuthStateChanged: (_auth: unknown, cb: (u: unknown) => void) => {
     listeners.push(cb);

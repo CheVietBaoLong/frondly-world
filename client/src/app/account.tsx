@@ -93,24 +93,28 @@ export default function AccountScreen() {
 
   const doRestore = () => {
     if (!user) return;
-    Alert.alert("Restore backup?", "This replaces your current garden with your last backup.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Restore",
-        style: "destructive",
-        onPress: async () => {
-          setError(null);
-          setBusy("restore");
-          try {
-            await restore(user.uid);
-          } catch (e) {
-            setError(e instanceof Error ? e.message : "Restore failed");
-          } finally {
-            setBusy(null);
-          }
+    Alert.alert(
+      "Restore backup?",
+      "This replaces your current garden with your last backup. Photos aren't included in backups and will be removed.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Restore",
+          style: "destructive",
+          onPress: async () => {
+            setError(null);
+            setBusy("restore");
+            try {
+              await restore(user.uid);
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Restore failed");
+            } finally {
+              setBusy(null);
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   if (initializing) {

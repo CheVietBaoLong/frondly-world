@@ -45,3 +45,5 @@ green-ish-client/
 
 # ADK runtime session store (created when the agent server runs)
 .adk/
+
+frondly-world-firebase-adminsdk-fbsvc.json
