@@ -85,7 +85,10 @@ export default function Care() {
     const neverWatered = plant.lastWatered == null;
     const item: CareItem = { plant, schedule, nextDate, neverWatered };
     // Due today or overdue → actionable "Today"; everything else → "This week".
-    if (!neverWatered && nextDate != null && nextDate <= today) dueToday.push(item);
+    // Never-watered plants land in Today too once their estimated date has
+    // passed; their reason line stays a soft "Water when dry" (see TodayRow),
+    // so they're surfaced as actionable without a fabricated overdue count.
+    if (nextDate != null && nextDate <= today) dueToday.push(item);
     else thisWeek.push(item);
   }
   // Soonest first within each group; undated items sort last.
@@ -178,8 +181,8 @@ function Thumb({ uri, size, radius }: { uri: string | null; size: number; radius
 // "Today" row: bold task, a reason line (the real schedule status), and a
 // tap-to-complete circle that marks the plant watered (it then leaves the list).
 function TodayRow({ item, today }: { item: CareItem; today: string }) {
-  const { plant, nextDate } = item;
-  const reason = scheduleStatus(nextDate, today, false).label;
+  const { plant, nextDate, neverWatered } = item;
+  const reason = scheduleStatus(nextDate, today, neverWatered).label;
   return (
     <View className="flex-row items-center gap-3 rounded-[20px] bg-surface p-3">
       <Pressable
