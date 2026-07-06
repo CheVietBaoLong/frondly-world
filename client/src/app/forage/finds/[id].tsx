@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ForageResultView, forageStateChip } from "@/components/forage-result-view";
@@ -10,6 +10,26 @@ import { SafetyStrip } from "@/components/ui/safety-strip";
 import { tokens } from "@/constants/tokens";
 import { database } from "@/db";
 import { Find } from "@/db/models/Find";
+import { deleteFind } from "@/lib/garden-delete";
+
+// Confirm before permanently removing a saved forage find and its photo.
+function confirmDeleteFind(findId: string, name: string) {
+  Alert.alert(
+    "Delete find?",
+    `"${name}" will be permanently removed from your finds. This can't be undone.`,
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () =>
+          deleteFind(database, findId)
+            .then(() => router.back())
+            .catch((e) => console.error("delete find failed:", e)),
+      },
+    ]
+  );
+}
 
 // Forage Find detail — re-renders the saved snapshot (result_json) exactly as it
 // was identified, offline and drift-free. The "View full species info" button
@@ -61,6 +81,16 @@ export default function ForageFindDetail() {
       </Header>
       <ForageResultView result={find.result} photo={find.photo ?? undefined} />
       <SafetyStrip text={find.result.safety_strip} />
+      <Pressable
+        onPress={() => confirmDeleteFind(find.id, find.commonName ?? "This find")}
+        className="flex-row items-center justify-center gap-2 rounded-[14px] border py-3"
+        style={{ borderColor: tokens.rust }}
+      >
+        <Ionicons name="trash-outline" size={16} color={tokens.rust} />
+        <Text className="font-body text-[15px] font-semibold" style={{ color: tokens.rust }}>
+          Delete find
+        </Text>
+      </Pressable>
     </ScrollView>
   );
 }
