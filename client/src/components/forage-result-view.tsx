@@ -61,7 +61,7 @@ function LowConfidenceBody({ result, pct }: { result: ForageResult; pct: number 
         <View className="gap-2.5">
           <SectionLabel text="POSSIBLE — NONE CONFIRMED, DO NOT EAT" />
           {result.possible_matches.map((name) => (
-            <View key={name} className="rounded-[14px] border border-border bg-surface p-3">
+            <View key={name} className="rounded-[16px] bg-surface p-3.5">
               <Text className="font-display text-[15px] text-forest">{name}</Text>
             </View>
           ))}
@@ -97,7 +97,7 @@ function UnverifiedBody({ result, pct }: { result: ForageResult; pct: number }) 
       <NameBlock name={result.name} scientific={result.scientific_name}>
         <Chip text={`Confidence ${pct}%`} bg="stoneBg" fg="secondary" />
       </NameBlock>
-      <View className="flex-row items-start gap-2 rounded-[14px] border border-border bg-surface p-3.5">
+      <View className="flex-row items-start gap-2 rounded-[16px] bg-surface p-3.5">
         <Ionicons name="information-circle" size={18} color={tokens.secondary} />
         <Text className="flex-1 font-body text-[13px] text-secondary">
           {result.message ?? "Not in our verified database yet, so we can't show foraging info."}

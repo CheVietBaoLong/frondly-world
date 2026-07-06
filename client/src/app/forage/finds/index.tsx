@@ -102,7 +102,7 @@ export default function ForageFinds() {
 
       {/* list */}
       {finds.length === 0 ? (
-        <View className="items-center gap-2 rounded-[16px] border border-border bg-surface p-8">
+        <View className="items-center gap-2 rounded-[20px] bg-surface p-8">
           <Ionicons name="leaf-outline" size={28} color={tokens.secondary} />
           <Text className="text-center font-body text-[13px] text-secondary">
             No finds yet — identify a plant, then tap “Save to finds”.
@@ -118,9 +118,9 @@ export default function ForageFinds() {
                 onPress={() =>
                   router.push({ pathname: "/forage/finds/[id]", params: { id: f.id } })
                 }
-                className="flex-row items-center gap-3 rounded-[16px] border border-border bg-surface p-3"
+                className="flex-row items-center gap-3 rounded-[20px] bg-surface p-3.5"
               >
-                <View className="h-12 w-12 items-center justify-center overflow-hidden rounded-[12px] bg-sage">
+                <View className="h-[52px] w-[52px] items-center justify-center overflow-hidden rounded-[14px] bg-sage">
                   {f.photo ? (
                     <Image
                       source={{ uri: f.photo }}
