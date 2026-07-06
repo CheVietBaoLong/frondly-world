@@ -6,5 +6,10 @@ service cloud.firestore {
     match /backups/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
+    // Explicit deny-all: unmatched paths already default to deny in v2, but this
+    // guards against a future wildcard rule accidentally widening access.
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
 }
